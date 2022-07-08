@@ -1,0 +1,195 @@
+---
+title: "Delaware River PIT tag data analysis"
+author: "Ben Letcher"
+date: "`r Sys.Date()`"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+
+library(tidyverse)
+library(lubridate)
+library(knitr)
+library(targets)
+library(tarchetypes)
+library(MCMCvis)
+library(htmltools)
+
+```
+*Note*: the results shown here are preliminary and have not been officially reviewed by USGS, NYDEC or PA Fish and Boat  
+
+This notebook uses [targets](https://books.ropensci.org/targets/) to manage running code. Targets sets up dependencies among specified objects and only re-runs code as necessary. This can save run times for projects with models that take a while to run, like capture-mark-recapture models.  
+
+Data preparation and model running happens using targets and exploration of the data and model runs is below in this Markdown document.  
+
+'knit' the document to update all targets and the markdown exploration below.  
+
+'tar_make()' runs all the R scripts and functions specified in '_targets.R'. Only updated code or sections that are downstream from updated data are re-run.  
+'tar_read()' reads 'target' data into the global environment.  
+
+This section runs the model and loads the results for analysis  
+```{r tar_make}
+#tar_make()
+
+d <- tar_read(target_d)
+eh <- tar_read(target_eh)
+#str(d)
+```
+
+
+```{r}
+tar_visnetwork()
+```
+
+Which rivers (Water) riverN corresponds to
+```{r riverN}
+table(d$Water, d$riverN)
+```
+
+### Raw data summary tables
+```{r basic summaries}
+
+kable(data.frame(ftable(d$date)))
+#kable(data.frame(ftable(d$Water, d$riverN)))
+
+#kable(data.frame(ftable(d$Water, d$riverN, d$date)))
+kable(data.frame(ftable(d$species)))
+
+### Number of unique tags
+length(unique(d$tag))
+```
+
+Group observations by month.  
+Luckily, sampling periods do not span months, so we can use month as a grouping variable for sampling occasion
+```{r by month}
+kable(data.frame(ftable(d$dateYM)))
+
+```
+
+### Tag information
+```{r tag information}
+
+tagN <- d %>% 
+  group_by(tag, Water) %>%
+  summarize(n = n()) %>%
+  filter(tag != "") %>%
+  arrange(desc(n))
+
+### Number of times individual fish were observed
+table(tagN$n)
+
+### Number of times individual fish were observed by river
+(table(tagN$Water, tagN$n))
+
+
+
+```
+
+### Basic summary plots of raw data
+```{r basic graphs}
+
+ggplot(d %>% filter(!is.na(species)), aes(Length)) +
+  geom_freqpoly() +
+  facet_grid(species ~ Water)
+
+```
+
+```{r data for TAME, ignore=TRUE}
+
+# dTame <- d %>% 
+#             select(Latitude, Longitude, tag, dateTime, species, Length, Weight) %>%
+#             filter(tag != "", tag != "ad")
+#             
+# write.csv(dTame, './dataOut/dTame.csv', row.names = FALSE)
+
+```
+
+
+
+### Encounter histories  
+This is the data structure for the capture-recpature models. Each column is a sampling 'occasion' (here = month) and each row is an individual, where a '1' indicates capture and a '0' indicates not captured.
+```{r eh}
+
+str(eh$eh)
+kable(head(eh$eh,8))
+```
+
+Summary info for years and occasions
+```{r}
+
+years <- colnames(eh$eh) %>%
+  substr(6,9) %>%
+  as.numeric()
+
+occs <- colnames(eh$eh)
+```
+
+
+### Models
+'phi' = apparent survival (probability of staying in the area = p(survival) + p(not moving out of area)).  
+'p' = probability of capture given that the fish is alive.
+```{r phiT pT}
+### Read the model run into global memory
+mod <- tar_read(target_model_phiT_pT)
+
+MCMCplot(object = mod$mcmc)
+
+# MCMCplot(object = mod$mcmc)
+# priors <- runif(mod$nIter * mod$nChains, 0, 1)
+# MCMCtrace(object = mod$mcmc,
+#           params = c("phi"),
+#           pdf = FALSE, 
+#           priors = priors)
+
+modSummary <- MCMCsummary(object = mod$mcmc, round = 3) 
+kable(modSummary %>%
+        add_column(data.frame(year = rep(years[1:15], 2), dateYM = rep(occs[1:15], 2)) )
+)
+
+#  d %>%
+#  summarize(unique(data.frame(dateYM, occ)))
+
+```
+
+```{r phi Summary}
+
+modSummaryYears <- modSummary %>%
+  filter(substr(row.names(modSummary), 1, 3) == "phi") %>%
+  add_column(data.frame(year = years[1:15], dateYM = occs[1:15], occ = 1:15)) %>%
+  group_by(year) %>%
+  mutate(maxSampPerYear = occ == max(occ))
+
+kable(
+  modSummaryYears %>%
+  group_by(year) %>%
+  filter(!maxSampPerYear) %>%
+  summarize(phiProd = prod(mean),
+            dateRange = range(dateYM)) %>%
+    as.data.frame()
+)
+
+
+```
+
+
+```{r p summary}
+#create data frame for summarizing p results
+
+modSummaryYearsP <- modSummary %>%
+  filter(substr(row.names(modSummary), 1, 2) == "p[") %>%
+  add_column(data.frame(year = years[1:15], dateYM = occs[1:15], occ = 1:15)) %>%
+  group_by(year) %>%
+  mutate(maxSampPerYear = occ == max(occ)) 
+
+kable(
+  modSummaryYearsP %>%
+  group_by(year) %>%
+  summarize(pMean = mean(mean),
+            dateRange = range(dateYM))
+  )
+```
+
+
