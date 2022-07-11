@@ -2,10 +2,14 @@
 title: "Delaware River PIT tag data analysis"
 author: "Ben Letcher"
 date: "`r Sys.Date()`"
-output: html_document
+output: pdf_document
 editor_options: 
   chunk_output_type: console
 ---
+
+```{r, include=FALSE}
+
+```
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
@@ -18,10 +22,11 @@ library(tarchetypes)
 library(MCMCvis)
 library(htmltools)
 
+options(tinytex.verbose = TRUE)
 ```
 *Note*: the results shown here are preliminary and have not been officially reviewed by USGS, NYDEC or PA Fish and Boat  
 
-This notebook uses [targets](https://books.ropensci.org/targets/) to manage running code. Targets sets up dependencies among specified objects and only re-runs code as necessary. This can save run times for projects with models that take a while to run, like capture-mark-recapture models.  
+This notebook uses [targets](https://books.ropensci.org/targets/) to manage running code and updating R objects. Targets sets up dependencies among specified objects and only re-runs code as necessary (when an upstream component gets updated). This can save run times for projects with models that take a while to run, like capture-mark-recapture models.  
 
 Data preparation and model running happens using targets and exploration of the data and model runs is below in this Markdown document.  
 
@@ -32,6 +37,7 @@ Data preparation and model running happens using targets and exploration of the 
 
 This section runs the model and loads the results for analysis  
 ```{r tar_make}
+# comment this out when kniting - get Latex error that it can't find the check mark the tar_make() uses
 #tar_make()
 
 d <- tar_read(target_d)
@@ -39,9 +45,9 @@ eh <- tar_read(target_eh)
 #str(d)
 ```
 
-
+Visualize the network - does not work with pdf output
 ```{r}
-tar_visnetwork()
+#tar_visnetwork()
 ```
 
 Which rivers (Water) riverN corresponds to
@@ -137,12 +143,11 @@ mod <- tar_read(target_model_phiT_pT)
 
 MCMCplot(object = mod$mcmc)
 
-# MCMCplot(object = mod$mcmc)
-# priors <- runif(mod$nIter * mod$nChains, 0, 1)
-# MCMCtrace(object = mod$mcmc,
-#           params = c("phi"),
-#           pdf = FALSE, 
-#           priors = priors)
+priors <- runif(mod$nIter * mod$nChains, 0, 1)
+MCMCtrace(object = mod$mcmc,
+          params = c("phi"),
+          pdf = FALSE,
+          priors = priors)
 
 modSummary <- MCMCsummary(object = mod$mcmc, round = 3) 
 kable(modSummary %>%

@@ -25,7 +25,10 @@ target_getData <-
       addOccN() %>%
       addKnownZ2() %>%
       addFirstLast() %>%
-      addRiverN() 
+      addRiverN() %>%
+      addMainTrib() %>%
+      addSizeState() %>%
+      combineRiverSizeState()
       
   )  
 

@@ -2,20 +2,20 @@ tar_option_set(packages = c("tidyverse", "nimble"))
 
 target_CMR_models_phiT_pT = 
   tar_plan(
-    nIter_tt = 2500, 
-    nBurnin_tt = 1000, 
-    nChains_tt = 2, 
-    thinRate_tt = 5,
+    nIter_ttt = 2500, 
+    nBurnin_ttt = 1000, 
+    nChains_ttt = 2, 
+    thinRate_ttt = 5,
     #target_model_phiT_pT = run_CMR_models_phiT_pT(tar_read(target_eh),
     #                                              nIter = nIter, 
     #                                              nBurnin = nBurnin, 
     #                                              nChains = nChains, 
     #                                              thinRate = thinRate)
    
-    eh_tt = tar_read(target_eh),
-    y_tt = eh_tt$eh,
-    first_tt = eh_tt$first, 
-    last_tt = eh_tt$last, # check - this should be num Occ for all fish
+    eh_ttt = tar_read(target_eh),
+    y_ttt = eh_ttt$eh,
+    first_ttt = eh_ttt$first, 
+    last_ttt = eh_ttt$last, # check - this should be num Occ for all fish
 
     hmm.phiT_pT = nimbleCode({
       delta[1] <- 1                    # Pr(alive t = 1) = 1
@@ -43,47 +43,47 @@ target_CMR_models_phiT_pT =
     }),
 
 
-    myConstants_tt = list(N = nrow(y_tt),
-                       T = ncol(y_tt),
-                       first = first_tt,
-                       last = last_tt),
+    myConstants_ttt = list(N = nrow(y_ttt),
+                       T = ncol(y_ttt),
+                       first = first_ttt,
+                       last = last_ttt),
 
-    myData_tt = list(y_tt = y_tt + 1),
+    myData_ttt = list(y_ttt = y_ttt + 1),
 
-    zinits_tt = y_tt + 1, # non-detection -> alive
+    zinits_ttt = y_ttt + 1, # non-detection -> alive
     #zinits[zinits == 2] = 1, # dead -> alive
 
-    initialValues_tt = function() list(phi = runif(myConstants_tt$T - 1, 0, 1),
-                                     p = runif(myConstants_tt$T - 1, 0, 1)
+    initialValues_ttt = function() list(phi = runif(myConstants_ttt$T - 1, 0, 1),
+                                     p = runif(myConstants_ttt$T - 1, 0, 1)
                                      #z = zinits
                                     ),
 
-    parametersToSave_tt = c("phi", "p"),
+    parametersToSave_ttt = c("phi", "p", "psi"),
 
     #start = Sys.time(),
 
-    Rmodel_tt = nimbleModel(
+    Rmodel_ttt = nimbleModel(
       code = hmm.phiT_pT,
-      constants = myConstants_tt,
-      data = myData_tt,
-      inits = initialValues_tt(),
+      constants = myConstants_ttt,
+      data = myData_ttt,
+      inits = initialValues_ttt(),
       calculate = FALSE
     ),
-    conf_tt = configureMCMC(
-      Rmodel_tt,
-      monitors = parametersToSave_tt
+    conf_ttt = configureMCMC(
+      Rmodel_ttt,
+      monitors = parametersToSave_ttt
     ),
 
-    Rmcmc_tt = buildMCMC(conf_tt, useConjugacy = FALSE),
-    Cmodel_tt = compileNimble(Rmodel_tt),
-    Cmcmc_tt = compileNimble(Rmcmc_tt, project = Rmodel_tt),
+    Rmcmc_ttt = buildMCMC(conf_ttt, useConjugacy = FALSE),
+    Cmodel_ttt = compileNimble(Rmodel_ttt),
+    Cmcmc_ttt = compileNimble(Rmcmc_ttt, project = Rmodel_ttt),
 
     mcmc.phiT_pT = runMCMC(
-      Cmcmc_tt,
-      niter = nIter_tt,
-      nburnin = nBurnin_tt,
-      thin = thinRate_tt,
-      nchains = nChains_tt
+      Cmcmc_ttt,
+      niter = nIter_ttt,
+      nburnin = nBurnin_ttt,
+      thin = thinRate_ttt,
+      nchains = nChains_ttt
     ),
 
     #end = Sys.time(),
@@ -94,14 +94,14 @@ target_CMR_models_phiT_pT =
       list(
         mcmc = mcmc.phiT_pT,
        #elapsed = elapsed_phiT_pT,
-        name = "phiT_pT",
-        myConstants = myConstants_tt,
-        nIter = nIter_tt,
-        nBurnin = nBurnin_tt,
-        thinRate = thinRate_tt,
+        name = "phiT_pT_psiT",
+        myConstants = myConstants_ttt,
+        nIter = nIter_ttt,
+        nBurnin = nBurnin_ttt,
+        thinRate = thinRate_ttt,
         #nSeasons = nSeasons,
         #nCohorts = nCohorts,
-        nChains = nChains_tt
+        nChains = nChains_ttt
       )
 
   )

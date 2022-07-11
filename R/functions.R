@@ -12,13 +12,6 @@
   ## getData functions 
   #####################################
   
-  addRiverN <- function(d){
-    rivers <- unique(d$Water) %>% sort()
-
-    d %>% 
-      mutate(riverN = as.numeric(factor(d$Water, levels = rivers)))
-  }
-
   addOccN <- function(d) {
     dates0 <- sort(unique(d$dateYM))
     dates <- data.frame(occ = 1:length(dates0), dateYM = dates0)
@@ -58,6 +51,36 @@
              isLastObserved = occ == lastObserved)
   }    
   
+  addRiverN <- function(d){
+    rivers <- unique(d$Water) %>% sort()
+    
+    d %>% 
+      mutate(riverN = as.numeric(factor(d$Water, levels = rivers)))
+  }
+  
+  addMainTrib <- function(d) {
+    d %>%
+      mutate(
+        mainTrib = ifelse(Water == tar_read(target_mainRiver), "main", "trib"),
+        mainTribN = ifelse(Water == tar_read(target_mainRiver), 1, 2)
+      )
+  }
+  
+  addSizeState <- function(d) {
+    d %>%
+      mutate(
+        sizeState = ifelse(Length < tar_read(target_sizeCutoff1), 1,
+                    ifelse(Length < tar_read(target_sizeCutoff2), 2, 3))
+      )
+  }
+  
+
+  combineRiverSizeState <- function(d) {
+    d %>%
+      mutate(
+        state = sizeState + (mainTribN - 1) * 3
+      )
+  }
 
   #####################################
   ## Create encounter histories 
@@ -147,6 +170,9 @@
     riverNWide <- getEHDataWide(d, cols, ops, vals, "riverN", valuesFill = 0)
     riverNMatrix <- as.matrix(riverNWide %>% dplyr::select(-tag), nrow = nrow(riverNWide), ncol = ncol(riverNWide) - 1)
     
+    stateWide <- getEHDataWide(d, cols, ops, vals, "state", valuesFill = 0)
+    stateMatrix <- as.matrix(stateWide %>% dplyr::select(-tag), nrow = nrow(stateWide), ncol = ncol(stateWide) - 1)
+    
     tags <- encWide %>% dplyr::select(tag)
     
     data <- d %>%
@@ -163,6 +189,7 @@
     return(list(eh = eh,
                 riverMatrix = riverMatrix,
                 riverNMatrix = riverNMatrix,
+                stateMatrix = stateMatrix,
                 tags = tags, 
                 first = first, 
                 last = last, 
