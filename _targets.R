@@ -38,6 +38,5 @@ list(
   target_prepareData,
   target_getEH,
   target_getEH_InputData,
-  #target_CMR_models_phiT_pT,
   target_CMR_models_phiT_pT_psiT
 )
