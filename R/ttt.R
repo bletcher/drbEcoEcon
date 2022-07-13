@@ -1,53 +1,45 @@
 tar_option_set(packages = c("tidyverse", "nimble", "nimbleEcology", "MCMCvis"))
 
-
-
-# Priors for psi where more likely to stay than move
-
-# states
-        
-# River      size1  size2   size3
-# Main        1       2       3
-# Trib        4       5       6
-same <- 0.75
-shrink <- 0.01
-grow1 <- 0.025
-grow2 <- 0.001
-move <- 0.025
-
-alphaR <- list()
-alphaR[[1]] <- alphaR1 <- c(same,   grow1,  grow2, move,   move,    move) 
-alphaR[[2]] <- alphaR2 <- c(shrink, same,   grow1, shrink, move,    move)
-alphaR[[3]] <- alphaR3 <- c(shrink, shrink, same,  shrink, shrink,  move)
-alphaR[[4]] <- alphaR4 <- c(move,   move,   move,  same,   grow1,   grow2)
-alphaR[[5]] <- alphaR5 <- c(shrink, move,   move,  shrink, same,    grow1)
-alphaR[[6]] <- alphaR6 <- c(shrink, shrink, move,  shrink, shrink,  same)
-
-getDirchPriorsR <- function(nStates, myConstants, alphaR){
-  a = array(rep(0, nStates * nStates * (myConstants$T - 1)) , c(nStates, nStates, (myConstants$T - 1) ))
-  for(r in 1:nStates){
-    for(t in 1:(myConstants$T - 1)){
-        dirch <- rdirch(1, alphaR[[r]])
-        for (r2 in 1:nStates){
-          a[r,r2,t] <- dirch[r2]
-        }
-      }
-    
-  }
-  return(a)
-}
-
-# target_ttt   file name will be same
-   # start all with ttt
-target_CMR_models_phiT_pT_psiT = 
+target_ttt = 
   tar_plan(
     
-    nStates = length(unique(target_eh$data$state)),
-    nRivers = nStates, # for now
-    first = target_eh$first, #apply(y, 1, function(x) min(which(x !=0)))
-    last = target_eh$last,
+    ttt_nStates = length(unique(target_eh$data$state)),
+    ttt_nRivers = ttt_nStates, # for now
+    #ttt_first = target_eh$first, #apply(y, 1, function(x) min(which(x !=0)))
+    #ttt_last = target_eh$last,
     
-    runData_ttt = list(
+    # Priors for psi where more likely to stay than move
+    # states
+    
+    # River      size1  size2   size3
+    # Main        1       2       3
+    # Trib        4       5       6
+    ttt_alpha = list(
+      same = 0.75,
+      shrink = 0.01,
+      grow1 = 0.025,
+      grow2 = 0.001,
+      move = 0.025,
+      
+      alphaR1 = c(same,   grow1,  grow2, move,   move,    move), 
+      alphaR2 = c(shrink, same,   grow1, shrink, move,    move),
+      alphaR3 = c(shrink, shrink, same,  shrink, shrink,  move),
+      alphaR4 = c(move,   move,   move,  same,   grow1,   grow2),
+      alphaR5 = c(shrink, move,   move,  shrink, same,    grow1),
+      alphaR6 = c(shrink, shrink, move,  shrink, shrink,  same)
+    ),
+    
+    ttt_inputData = list(
+      y = target_eh$stateMatrix,
+      first = target_eh$first, 
+      last = target_eh$last, 
+      zInits = getInits(target_eh$eh),
+      
+      # Proportion of fish in each river on the first observation
+      deltaProps = table(target_eh$stateMatrix[target_eh$stateMatrix > 0]) / length(target_eh$stateMatrix[target_eh$stateMatrix > 0])
+    ),   
+    
+    ttt_runData = list(
       # Updateable model-specific variables 
       nIter = 2500, 
       nBurnin = 1000, 
@@ -55,60 +47,38 @@ target_CMR_models_phiT_pT_psiT =
       thinRate = 5
     ),
     
-    inputData_ttt = list(
-      y = target_stateMatrix,
-      first = target_first, 
-      last = target_last, 
-      zInits = target_zInits 
-    ),
-    
-    # Proportion of fish in each river on the first observation
-    #y1 = tar_read(inputData_ttt)$y,
-    y1 = inputData_ttt$y,
-    deltaProps = table(y1[y1>0]) / length(y1[y1>0]),
-    
-    myConstants_ttt = list(
-      N = nrow(inputData_ttt$y),
-      T = ncol(inputData_ttt$y),
-      first = inputData_ttt$first,
-      last = inputData_ttt$last,
+    ttt_myConstants = list(
+      N = nrow(ttt_inputData$y),
+      T = ncol(ttt_inputData$y),
+      first = target_eh$first,
+      last = target_eh$last,
       
-      nRivers = nRivers,
-      length = last - first + 1,
-      alphaR1 = alphaR1,
-      alphaR2 = alphaR2,
-      alphaR3 = alphaR3,
-      alphaR4 = alphaR4,
-      alphaR5 = alphaR5,
-      alphaR6 = alphaR6,
+      nRivers = ttt_nRivers,
+      length = target_eh$last - target_eh$first + 1,
       
-      deltaProps = deltaProps,
-      nStates = nStates
+      alphaR1 = ttt_alpha$alphaR1,
+      alphaR2 = ttt_alpha$alphaR2,
+      alphaR3 = ttt_alpha$alphaR3,
+      alphaR4 = ttt_alpha$alphaR4,
+      alphaR5 = ttt_alpha$alphaR5,
+      alphaR6 = ttt_alpha$alphaR6,
+      
+      deltaProps = ttt_inputData$deltaProps,
+      nStates = ttt_nStates
     ),
     
-    myData_ttt = list(
-      y = inputData_ttt$y + 1
+    ttt_myData = list(
+      y = ttt_inputData$y + 1
     ),
     
-    initialValues_ttt =  
-      list(
-        betaPhiRiver = array(runif(nRivers, 0, 1), c(nRivers)),
-        betaPhi = array(rnorm(nRivers * (myConstants_ttt$T - 1), 0, 1), c(nRivers, (myConstants_ttt$T - 1))),
-        
-        betaPRiver = array(runif(nRivers, 0, 1), c(nRivers)),
-        betaP = array(rnorm(nRivers * (myConstants_ttt$T - 1), 0, 1), c(nRivers, (myConstants_ttt$T - 1))),
-  
-        psi = getDirchPriorsR(nRivers, myConstants_ttt, alphaR)
-      ),
-    
-    parametersToSave_ttt = c("betaPhi", "betaPhiRiver", 
+    ttt_parametersToSave = c("betaPhi", "betaPhiRiver", 
                              "betaP",   "betaPRiver", 
                              "betaPhiOut", "betaPhiRiverOut",
                              "betaPOut",   "betaPRiverOut", 
                              
                              "psi"),
     
-    modelCode_ttt = nimbleCode({
+    ttt_modelCode = nimbleCode({
       # Initial distribution among rivers
       delta[1] <- deltaProps[1]                  # Pr(alive t = 1 and in river 1) = 0.4
       delta[2] <- deltaProps[2]
@@ -144,7 +114,8 @@ target_CMR_models_phiT_pT_psiT =
           psi[2,1:nRivers,t] ~ ddirch(alphaR2[1:nRivers])
           psi[3,1:nRivers,t] ~ ddirch(alphaR3[1:nRivers])
           psi[4,1:nRivers,t] ~ ddirch(alphaR4[1:nRivers])
-  
+          psi[5,1:nRivers,t] ~ ddirch(alphaR5[1:nRivers])
+          psi[6,1:nRivers,t] ~ ddirch(alphaR6[1:nRivers])
       }
 
       for (t in 1:(T-1)){ # loop over time
@@ -155,6 +126,7 @@ target_CMR_models_phiT_pT_psiT =
         gamma[1,5,t] <- ilogit(betaPhi[1,t]) * psi[1,5,t]
         gamma[1,6,t] <- ilogit(betaPhi[1,t]) * psi[1,6,t]          
         gamma[1,7,t] <- 1 - ilogit(betaPhi[1,t])
+        
         gamma[2,1,t] <- ilogit(betaPhi[2,t]) * psi[2,1,t]
         gamma[2,2,t] <- ilogit(betaPhi[2,t]) * psi[2,2,t]
         gamma[2,3,t] <- ilogit(betaPhi[2,t]) * psi[2,3,t]
@@ -162,6 +134,7 @@ target_CMR_models_phiT_pT_psiT =
         gamma[2,5,t] <- ilogit(betaPhi[2,t]) * psi[2,5,t]
         gamma[2,6,t] <- ilogit(betaPhi[2,t]) * psi[2,6,t]
         gamma[2,7,t] <- 1 - ilogit(betaPhi[2,t])
+        
         gamma[3,1,t] <- ilogit(betaPhi[3,t]) * psi[3,1,t]
         gamma[3,2,t] <- ilogit(betaPhi[3,t]) * psi[3,2,t]
         gamma[3,3,t] <- ilogit(betaPhi[3,t]) * psi[3,3,t]
@@ -169,6 +142,7 @@ target_CMR_models_phiT_pT_psiT =
         gamma[3,5,t] <- ilogit(betaPhi[3,t]) * psi[3,5,t]
         gamma[3,6,t] <- ilogit(betaPhi[3,t]) * psi[3,6,t]
         gamma[3,7,t] <- 1 - ilogit(betaPhi[3,t])
+        
         gamma[4,1,t] <- ilogit(betaPhi[4,t]) * psi[4,1,t]
         gamma[4,2,t] <- ilogit(betaPhi[4,t]) * psi[4,2,t]
         gamma[4,3,t] <- ilogit(betaPhi[4,t]) * psi[4,3,t]
@@ -184,6 +158,7 @@ target_CMR_models_phiT_pT_psiT =
         gamma[5,5,t] <- ilogit(betaPhi[5,t]) * psi[5,5,t]
         gamma[5,6,t] <- ilogit(betaPhi[5,t]) * psi[5,6,t]
         gamma[5,7,t] <- 1 - ilogit(betaPhi[5,t])
+        
         gamma[6,1,t] <- ilogit(betaPhi[6,t]) * psi[6,1,t]
         gamma[6,2,t] <- ilogit(betaPhi[6,t]) * psi[6,2,t]
         gamma[6,3,t] <- ilogit(betaPhi[6,t]) * psi[6,3,t]
@@ -219,6 +194,7 @@ target_CMR_models_phiT_pT_psiT =
         omega[1,5,first[i],i] <- 0          # Pr(alive A t -> detected D t)
         omega[1,6,first[i],i] <- 0
         omega[1,7,first[i],i] <- 0
+        
         omega[2,1,first[i],i] <- 0          # Pr(alive B t -> non-detected t)
         omega[2,2,first[i],i] <- 0          # Pr(alive B t -> detected A t)
         omega[2,3,first[i],i] <- 1          # Pr(alive B t -> detected B t)
@@ -226,6 +202,7 @@ target_CMR_models_phiT_pT_psiT =
         omega[2,5,first[i],i] <- 0          # Pr(alive B t -> detected C t)
         omega[2,6,first[i],i] <- 0
         omega[2,7,first[i],i] <- 0
+        
         omega[3,1,first[i],i] <- 0          # Pr(alive C t -> non-detected t)
         omega[3,2,first[i],i] <- 0          # Pr(alive C t -> detected A t)
         omega[3,3,first[i],i] <- 0          # Pr(alive C t -> detected B t)
@@ -233,6 +210,7 @@ target_CMR_models_phiT_pT_psiT =
         omega[3,5,first[i],i] <- 0          # Pr(alive C t -> detected C t)
         omega[3,6,first[i],i] <- 0
         omega[3,7,first[i],i] <- 0
+        
         omega[4,1,first[i],i] <- 0          # Pr(dead t -> non-detected t)
         omega[4,2,first[i],i] <- 0          # Pr(dead t -> detected A t)
         omega[4,3,first[i],i] <- 0          # Pr(dead t -> detected B t)
@@ -240,6 +218,7 @@ target_CMR_models_phiT_pT_psiT =
         omega[4,5,first[i],i] <- 1          # Pr(dead t -> detected C t)
         omega[4,6,first[i],i] <- 0
         omega[4,7,first[i],i] <- 0
+        
         omega[5,1,first[i],i] <- 0          # Pr(dead t -> non-detected t)
         omega[5,2,first[i],i] <- 0          # Pr(dead t -> detected A t)
         omega[5,3,first[i],i] <- 0          # Pr(dead t -> detected B t)
@@ -255,6 +234,7 @@ target_CMR_models_phiT_pT_psiT =
         omega[6,5,first[i],i] <- 0        
         omega[6,6,first[i],i] <- 0
         omega[6,7,first[i],i] <- 1
+        
         omega[7,1,first[i],i] <- 1          
         omega[7,2,first[i],i] <- 0      
         omega[7,3,first[i],i] <- 0        
@@ -288,6 +268,7 @@ target_CMR_models_phiT_pT_psiT =
           omega[1,5,t,i] <- 0               # Pr(alive A t -> detected D t)
           omega[1,6,t,i] <- 0
           omega[1,7,t,i] <- 0
+          
           omega[2,1,t,i] <- 1 - pB[t,i]     # Pr(alive B t -> non-detected t)
           omega[2,2,t,i] <- 0               # Pr(alive B t -> detected A t)
           omega[2,3,t,i] <- pB[t,i]         # Pr(alive B t -> detected B t)
@@ -295,6 +276,7 @@ target_CMR_models_phiT_pT_psiT =
           omega[2,5,t,i] <- 0               # Pr(alive B t -> detected C t)
           omega[2,6,t,i] <- 0
           omega[2,7,t,i] <- 0
+          
           omega[3,1,t,i] <- 1 - pC[t,i]     # Pr(alive C t -> non-detected t)
           omega[3,2,t,i] <- 0               # Pr(alive C t -> detected A t)
           omega[3,3,t,i] <- 0               # Pr(alive C t -> detected B t)
@@ -302,6 +284,7 @@ target_CMR_models_phiT_pT_psiT =
           omega[3,5,t,i] <- 0               # Pr(alive C t -> detected C t)
           omega[3,6,t,i] <- 0
           omega[3,7,t,i] <- 0
+          
           omega[4,1,t,i] <- 1 - pD[t,i]     # Pr(alive D t -> non-detected t))
           omega[4,2,t,i] <- 0               # Pr(dead D t -> detected A t)
           omega[4,3,t,i] <- 0               # Pr(dead D t -> detected B t)
@@ -325,6 +308,7 @@ target_CMR_models_phiT_pT_psiT =
           omega[6,5,t,i] <- 0               # Pr(dead t -> detected D t)
           omega[6,6,t,i] <- 0
           omega[6,7,t,i] <- pF[t,i]
+          
           omega[7,1,t,i] <- 1               # Pr(dead t -> non-detected t)
           omega[7,2,t,i] <- 0               # Pr(dead t -> detected A t)
           omega[7,3,t,i] <- 0               # Pr(dead t -> detected B t)
@@ -332,8 +316,7 @@ target_CMR_models_phiT_pT_psiT =
           omega[7,5,t,i] <- 0               # Pr(dead t -> detected D t)
           omega[7,6,t,i] <- 0
           omega[7,7,t,i] <- 0
-        }
-
+        } # t loop
       } # i loop
 
       for (i in 1:N){
@@ -346,36 +329,37 @@ target_CMR_models_phiT_pT_psiT =
 
     }),
 
-    Rmodel_ttt = nimbleModel(
-      code = modelCode_ttt,
-      constants = myConstants_ttt,
-      data = myData_ttt,
-      inits = initialValues_ttt,
+    ttt_Rmodel = nimbleModel(
+      code = ttt_modelCode,
+      constants = ttt_myConstants,
+      data = ttt_myData$y,
+      inits = initialValues(ttt_nRivers, ttt_myConstants, ttt_alpha),
       calculate = FALSE
     ),
-    conf_ttt = configureMCMC(
-      Rmodel_ttt,
-      monitors = parametersToSave_ttt
+    
+    ttt_conf = configureMCMC(
+      ttt_Rmodel,
+      monitors = ttt_parametersToSave
     ),
 
-    Rmcmc_ttt = buildMCMC(conf_ttt, useConjugacy = FALSE),
-    Cmodel_ttt = compileNimble(Rmodel_ttt),
-    Cmcmc_ttt = compileNimble(Rmcmc_ttt, project = Rmodel_ttt),
+    ttt_Rmcmc = buildMCMC(ttt_conf, useConjugacy = FALSE),
+    ttt_Cmodel= compileNimble(ttt_Rmodel),
+    ttt_Cmcmc = compileNimble(ttt_Rmcmc, project = ttt_Rmodel),
 
-    model_ttt = runMCMC(
-      Cmcmc_ttt,
-      niter = runData_ttt$nIter,
-      nburnin = runData_ttt$nBurnin,
-      thin = runData_ttt$thinRate,
-      nchains = runData_ttt$nChains
+    ttt_model = runMCMC(
+      ttt_Cmcmc,
+      niter = ttt_runData$nIter,
+      nburnin = ttt_runData$nBurnin,
+      thin = ttt_runData$thinRate,
+      nchains = ttt_runData$nChains
     ),
 
-    modelOut_ttt =
+    ttt_modelOut =
       list(
-        mcmc = model_ttt,
+        mcmc = ttt_model,
         name = "phiT_pT_psiT",
-        myConstants = myConstants_ttt,
-        runData = runData_ttt
+        myConstants = ttt_myConstants,
+        runData = ttt_runData
       )
     
     
@@ -385,3 +369,38 @@ target_CMR_models_phiT_pT_psiT =
 #save(tmp, file = paste0('./models/runsOut/mcmc_ttt_', substr(Sys.time(),1,13), '.RData'))
 
 #MCMCplot(object = modelOut_ttt$mcmc, params = "betaPhiOut")
+
+
+
+initialValues <- function(r, c, a) {  
+  list(
+    betaPhiRiver = array(runif(r, 0, 1), c(r)),
+    betaPhi = array(rnorm(r * (c$T - 1), 0, 1), c(r, (c$T - 1))),
+     
+    betaPRiver = array(runif(r, 0, 1), c(r)),
+    betaP = array(rnorm(r * (c$T - 1), 0, 1), c(r, (c$T - 1))),
+    
+    psi = getDirchPriorsR(r, c, a)
+  )
+}
+
+getDirchPriorsR <- function(s, c, aa){
+  a <- array(rep(0, s * s * (c$T - 1)), c(s, s, (c$T - 1)))
+  #for(r in 1:s){
+    for(t in 1:(c$T - 1)){
+      a[1,1:s,t] <- rdirch(1, aa$alphaR1)
+      a[2,1:s,t] <- rdirch(1, aa$alphaR2)
+      a[3,1:s,t] <- rdirch(1, aa$alphaR3)
+      a[4,1:s,t] <- rdirch(1, aa$alphaR4)
+      a[5,1:s,t] <- rdirch(1, aa$alphaR5)
+      a[6,1:s,t] <- rdirch(1, aa$alphaR6)
+    }
+  #}
+  return(a)
+}
+
+getInits <- function(y) {
+  zInits <- y + 1 # non-detection -> alive
+  zInits[zInits == 2] = 1 # dead -> alive
+  return(zInits)
+}

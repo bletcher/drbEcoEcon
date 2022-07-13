@@ -1,4 +1,4 @@
-tar_option_set(packages = c("tidyverse", "lubridate"))
+tar_option_set(packages = c("tidyverse"))
 
 target_globalVariables <- 
   tar_plan(

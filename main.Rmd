@@ -40,6 +40,9 @@ This section runs the model and loads the results for analysis
 # comment this out when kniting - get Latex error that it can't find the check mark the tar_make() uses
 #tar_make()
 
+#tar_invalidate(everything())
+#tar_invalidate(ends_with("ttt"))
+
 d <- tar_read(target_d)
 eh <- tar_read(target_eh)
 #str(d)

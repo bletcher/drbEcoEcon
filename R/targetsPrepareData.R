@@ -3,24 +3,17 @@ tar_option_set(packages = c("tidyverse"))
 target_prepareData <- 
   tar_plan(
     
-   # Fish with no captures - NONE  
-    noCaptures = tar_read(dRaw) %>%
-        filter(tag != "", tag != "ad") %>%
-        group_by(date, tag) %>%
-        summarise(n = n()) %>%
-        filter(n == 0),
-    
     ###########################################
     # find fish caught more than once on a day
-    gtOneCapture = tar_read(dRaw) %>%
+    gtOneCapture = dRaw %>%
         filter(tag != "", tag != "ad") %>%
         group_by(date, tag) %>%
         summarise(n = n()) %>%
         filter(n > 1),
     
     #all occasions of fish captured more than once on a day - sent to Fred Henson
-    gtOncePerDay = tar_read(dRaw) %>%
-        filter(tag %in% tar_read(gtOneCapture)$tag) %>%
+    gtOncePerDay = dRaw %>%
+        filter(tag %in% gtOneCapture$tag) %>%
         arrange(tag, date) %>%
         select(Water, date, dateTime, tag, Length, Weight, tblSL_SL_ID, Rep, FishNum),
     
