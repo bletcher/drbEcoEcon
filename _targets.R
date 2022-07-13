@@ -36,7 +36,7 @@ list(
    target_globalVariables,
    target_getData,
    target_prepareData,
-   target_getEH
-   #target_getEH_InputData,
-#   target_ttt#target_CMR_models_phiT_pT_psiT
+   target_getEH,
+   #target_ttt
+   tar_render(report, "main.Rmd")
 )

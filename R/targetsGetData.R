@@ -5,7 +5,7 @@ target_getData <-
     d0 = read.csv("./dataIn/JFIP_ElectrofishingData_Converted.csv"),
     # Simple drake-like syntax:
     #d0 = read_csv(d00),
-    dRaw = d0 %>%
+    dRaw0 = d0 %>%
       select(Longitude, Latitude, Date, Time, SiteLen, Discharge, WaterTemp, GearType, 
              TimeStart, Time.Stop, TimeFish, FishNum, SpeciesCd, Length, Weight, 
              Wild, Stage, MarkAppCd, Mark.PreCd, Water, tblSL_SL_ID, Rep, FishNum) %>%
@@ -21,7 +21,9 @@ target_getData <-
         tag = ifelse(MarkAppCd == "", Mark.PreCd, MarkAppCd),
         tag = tolower(tag),
         enc = 1
-      ) %>%
+      ),
+    
+    dRaw = dRaw0 %>%
       removeUntagged() %>%
       removeUncaptured() %>%
       addOccN() %>%

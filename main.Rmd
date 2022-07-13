@@ -22,6 +22,13 @@ library(tarchetypes)
 library(MCMCvis)
 library(htmltools)
 
+library(bs4Dash)
+library(DT)
+library(gt)
+library(pingr)
+library(shinybusy)
+library(shinyWidgets)
+
 options(tinytex.verbose = TRUE)
 ```
 *Note*: the results shown here are preliminary and have not been officially reviewed by USGS, NYDEC or PA Fish and Boat  
@@ -35,18 +42,29 @@ Data preparation and model running happens using targets and exploration of the 
 'tar_make()' runs all the R scripts and functions specified in '_targets.R'. Only updated code or sections that are downstream from updated data are re-run.  
 'tar_read()' reads 'target' data into the global environment.  
 
-This section runs the model and loads the results for analysis  
+This section (tar_make()) reruns the model   
 ```{r tar_make}
+tar_watch(seconds = 10, outdated = FALSE, targets_only = TRUE)
 # comment this out when kniting - get Latex error that it can't find the check mark the tar_make() uses
 #tar_make()
 
+# tar_prune() # cleans unused data files
 #tar_invalidate(everything())
 #tar_invalidate(ends_with("ttt"))
 
-d <- tar_read(target_d)
-eh <- tar_read(target_eh)
+
 #str(d)
 ```
+
+Load data for analysis
+```{r getTargets}
+dRaw0 <- tar_read(dRaw0) #all data - including untagged
+dRaw <- tar_read(dRaw) #all data for CMR models
+d <- tar_read(target_d)
+eh <- tar_read(target_eh)
+
+```
+
 
 Visualize the network - does not work with pdf output
 ```{r}
@@ -78,7 +96,8 @@ kable(data.frame(ftable(d$dateYM)))
 
 ```
 
-### Tag information
+### Tag information  
+Grouped by Water (sampling area)
 ```{r tag information}
 
 tagN <- d %>% 
@@ -97,7 +116,25 @@ table(tagN$n)
 
 ```
 
-### Basic summary plots of raw data
+Grouped by main/trib
+```{r tag information mainTrib}
+
+tagN_mt <- d %>% 
+  group_by(tag, mainTrib) %>%
+  summarize(n = n()) %>%
+  filter(tag != "") %>%
+  arrange(desc(n))
+
+### Number of times individual fish were observed
+table(tagN_mt$n)
+
+### Number of times individual fish were observed by river
+(table(tagN_mt$mainTrib, tagN_mt$n))
+
+
+```
+
+### Basic summary plots of raw tagging data
 ```{r basic graphs}
 
 ggplot(d %>% filter(!is.na(species)), aes(Length)) +
@@ -119,7 +156,7 @@ ggplot(d %>% filter(!is.na(species)), aes(Length)) +
 
 
 ### Encounter histories  
-This is the data structure for the capture-recpature models. Each column is a sampling 'occasion' (here = month) and each row is an individual, where a '1' indicates capture and a '0' indicates not captured.
+This is the data structure for the capture-recapture models. Each column is a sampling 'occasion' (here = month) and each row is an individual, where a '1' indicates capture and a '0' indicates not captured.
 ```{r eh}
 
 str(eh$eh)
@@ -140,9 +177,9 @@ occs <- colnames(eh$eh)
 ### Models
 'phi' = apparent survival (probability of staying in the area = p(survival) + p(not moving out of area)).  
 'p' = probability of capture given that the fish is alive.
-```{r phiT pT}
+```{r phiT pT, eval=FALSE}
 ### Read the model run into global memory
-mod <- tar_read(target_model_phiT_pT)
+mod <- tar_read(ttt)
 
 MCMCplot(object = mod$mcmc)
 
@@ -162,7 +199,7 @@ kable(modSummary %>%
 
 ```
 
-```{r phi Summary}
+```{r phi Summary, eval=FALSE}
 
 modSummaryYears <- modSummary %>%
   filter(substr(row.names(modSummary), 1, 3) == "phi") %>%
@@ -183,7 +220,7 @@ kable(
 ```
 
 
-```{r p summary}
+```{r p summary, eval=FALSE}
 #create data frame for summarizing p results
 
 modSummaryYearsP <- modSummary %>%
