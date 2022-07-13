@@ -33,10 +33,10 @@ lapply(list.files("R", full.names = TRUE, recursive = TRUE), source)
 
 # Replace the target list below with your own:
 list(
-  target_globalVariables,
+   target_globalVariables,
    target_getData,
    target_prepareData,
-   target_getEH,
+   target_getEH
    #target_getEH_InputData,
-   target_ttt#target_CMR_models_phiT_pT_psiT
+#   target_ttt#target_CMR_models_phiT_pT_psiT
 )

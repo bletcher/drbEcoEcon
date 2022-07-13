@@ -28,8 +28,8 @@ target_getData <-
       addKnownZ2() %>%
       addFirstLast() %>%
       addRiverN() %>%
-      addMainTrib() %>%
-      addSizeState() %>%
+      addMainTrib(target_mainRiver) %>%
+      addSizeState(target_sizeCutoff1, target_sizeCutoff2) %>%
       combineRiverSizeState() %>%
       doNothing()
       
@@ -104,19 +104,19 @@ addRiverN <- function(d){
     mutate(riverN = as.numeric(factor(d$Water, levels = rivers)))
 }
 
-addMainTrib <- function(d) {
+addMainTrib <- function(d, r) {
   d %>%
     mutate(
-      mainTrib = ifelse(Water == tar_read(target_mainRiver), "main", "trib"),
-      mainTribN = ifelse(Water == tar_read(target_mainRiver), 1, 2)
+      mainTrib = ifelse(Water == r, "main", "trib"),
+      mainTribN = ifelse(Water == r, 1, 2)
     )
 }
 
-addSizeState <- function(d) {
+addSizeState <- function(d, s1, s2) {
   d %>%
     mutate(
-      sizeState = ifelse(Length < tar_read(target_sizeCutoff1), 1,
-                         ifelse(Length < tar_read(target_sizeCutoff2), 2, 3))
+      sizeState = ifelse(Length < s1, 1,
+                         ifelse(Length < s2, 2, 3))
     )
 }
 

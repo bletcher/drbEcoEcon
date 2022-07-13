@@ -7,5 +7,3 @@ target_globalVariables <-
     target_sizeCutoff2 = 300
       
   )  
-
-
