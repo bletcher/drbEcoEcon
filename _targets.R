@@ -37,6 +37,6 @@ list(
    target_getData,
    target_prepareData,
    target_getEH,
-   #target_ttt
+   target_ttt,
    tar_render(report, "main.Rmd")
 )

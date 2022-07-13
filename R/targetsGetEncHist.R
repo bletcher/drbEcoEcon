@@ -116,7 +116,7 @@ getEH <- function(d, cols, ops, vals ){
   first <- apply(eh, 1, function(x) min(which(x != 0)))
   #last <- apply(riverMatrix, 1, function(x) max(which(!is.na(x))))
   #last <- ifelse(last == ncol(riverMatrix), last, last - 1)
-  last <- rep(ncol(riverMatrix) - 1, nrow(riverMatrix))
+  last <- rep(ncol(riverMatrix) - 0, nrow(riverMatrix))
   
   return(list(eh = eh,
               riverMatrix = riverMatrix,

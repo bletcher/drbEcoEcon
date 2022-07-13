@@ -14,19 +14,21 @@ target_ttt =
     # River      size1  size2   size3
     # Main        1       2       3
     # Trib        4       5       6
-    ttt_alpha = list(
-      same = 0.75,
+    ttt_a = list(
+      same = 0.750,
       shrink = 0.01,
       grow1 = 0.025,
       grow2 = 0.001,
-      move = 0.025,
-      
-      alphaR1 = c(same,   grow1,  grow2, move,   move,    move), 
-      alphaR2 = c(shrink, same,   grow1, shrink, move,    move),
-      alphaR3 = c(shrink, shrink, same,  shrink, shrink,  move),
-      alphaR4 = c(move,   move,   move,  same,   grow1,   grow2),
-      alphaR5 = c(shrink, move,   move,  shrink, same,    grow1),
-      alphaR6 = c(shrink, shrink, move,  shrink, shrink,  same)
+      move = 0.025
+    ),
+    
+    ttt_alpha = list(
+      alphaR1 = c(ttt_a$same,   ttt_a$grow1,  ttt_a$grow2, ttt_a$move,   ttt_a$move,    ttt_a$move), 
+      alphaR2 = c(ttt_a$shrink, ttt_a$same,   ttt_a$grow1, ttt_a$shrink, ttt_a$move,    ttt_a$move),
+      alphaR3 = c(ttt_a$shrink, ttt_a$shrink, ttt_a$same,  ttt_a$shrink, ttt_a$shrink,  ttt_a$move),
+      alphaR4 = c(ttt_a$move,   ttt_a$move,   ttt_a$move,  ttt_a$same,   ttt_a$grow1,   ttt_a$grow2),
+      alphaR5 = c(ttt_a$shrink, ttt_a$move,   ttt_a$move,  ttt_a$shrink, ttt_a$same,    ttt_a$grow1),
+      alphaR6 = c(ttt_a$shrink, ttt_a$shrink, ttt_a$move,  ttt_a$shrink, ttt_a$shrink,  ttt_a$same)
     ),
     
     ttt_inputData = list(
@@ -365,14 +367,10 @@ target_ttt =
     
     
   ) # tar_plan
-#tmp <- tar_read(modelOut_ttt)
-#save(tmp, file = paste0('./models/runsOut/mcmc_ttt_', substr(Sys.time(),1,13), '.RData'))
 
-#MCMCplot(object = modelOut_ttt$mcmc, params = "betaPhiOut")
+############ Functions ###############
 
-
-
-initialValues <- function(r, c, a) {  
+initialValues <- function(r, c, aa) {  
   list(
     betaPhiRiver = array(runif(r, 0, 1), c(r)),
     betaPhi = array(rnorm(r * (c$T - 1), 0, 1), c(r, (c$T - 1))),
@@ -380,7 +378,7 @@ initialValues <- function(r, c, a) {
     betaPRiver = array(runif(r, 0, 1), c(r)),
     betaP = array(rnorm(r * (c$T - 1), 0, 1), c(r, (c$T - 1))),
     
-    psi = getDirchPriorsR(r, c, a)
+    psi = getDirchPriorsR(r, c, aa)
   )
 }
 

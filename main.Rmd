@@ -161,6 +161,8 @@ This is the data structure for the capture-recapture models. Each column is a sa
 
 str(eh$eh)
 kable(head(eh$eh,8))
+
+table(paste(eh$first, eh$last, sep="_"))
 ```
 
 Summary info for years and occasions
