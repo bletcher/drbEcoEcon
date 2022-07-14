@@ -42,6 +42,9 @@ Data preparation and model running happens using targets and exploration of the 
 'tar_make()' runs all the R scripts and functions specified in '_targets.R'. Only updated code or sections that are downstream from updated data are re-run.  
 'tar_read()' reads 'target' data into the global environment.  
 
+
+To set up a targets project, use use_targets()
+
 This section (tar_make()) reruns the model   
 ```{r tar_make}
 #  tar_watch(seconds = 10, outdated = FALSE, targets_only = TRUE)
@@ -136,12 +139,30 @@ table(tagN_mt$n)
 
 ```
 
+Grouped by state
+```{r tag information state}
+
+tagN_s <- d %>% 
+  group_by(tag, state) %>%
+  summarize(n = n()) %>%
+  filter(tag != "") %>%
+  arrange(desc(n))
+
+### Number of times individual fish were observed
+table(tagN_s$n)
+
+### Number of times individual fish were observed by river
+table(tagN_s$state, tagN_s$n)
+```
+
+
 ### Basic summary plots of raw tagging data
 ```{r basic graphs}
 
-ggplot(d %>% filter(!is.na(species)), aes(Length)) +
+ggplot(d %>% filter(species == "brown trout"), aes(Length)) +
   geom_freqpoly() +
-  facet_grid(species ~ Water)
+  geom_vline(xintercept = c(tar_read(target_sizeCutoff1), tar_read(target_sizeCutoff2))) +
+  facet_grid(~mainTrib)
 
 ```
 

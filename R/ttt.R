@@ -43,8 +43,8 @@ target_ttt =
     
     ttt_runData = list(
       # Updateable model-specific variables 
-      nIter = 2500, 
-      nBurnin = 1000, 
+      nIter = 1000, 
+      nBurnin = 500, 
       nChains = 2,
       thinRate = 5
     ),
@@ -77,6 +77,8 @@ target_ttt =
                              "betaPOut",   "betaPRiverOut", 
                              "psi"),
     
+    #ttt_dnormSD = 0.001,
+    
     ttt_modelCode = nimbleCode({
       # Initial distribution among rivers
       delta[1] <- deltaProps[1]                  # Pr(alive t = 1 and in river 1) = 0.4
@@ -88,36 +90,29 @@ target_ttt =
       delta[7] <- 0                    # Pr(dead t = 1) = 0
 
       for (r in 1:nStates){
-        betaPhiRiver[r] ~ dnorm(0,1000)
-        betaPRiver[r] ~ dnorm(0,1000)
+        betaPhiRiver[r] ~ dnorm(0,0.001) # r should be changed to s and river to state throughout
+        betaPRiver[r] ~ dnorm(0,0.001)
 
         betaPhiRiverOut[r] <- ilogit(betaPhiRiver[r])
         betaPRiverOut[r] <- ilogit(betaPRiver[r])
 
         for (t in 1:(T-1)){
-          betaPhi[r,t] ~ dnorm(betaPhiRiver[r],1000)
-          betaP[r,t] ~ dnorm(betaPRiver[r],1000)
+          betaPhi[r,t] ~ dnorm(betaPhiRiver[r],0.001)
+          betaP[r,t] ~ dnorm(betaPRiver[r],0.001)
 
           betaPhiOut[r,t] <- ilogit(betaPhi[r,t])
           betaPOut[r,t] <- ilogit(betaP[r,t])
-
-          # move from river 'r' to one of river 1:nStates
-          # Nice description of effect of 'alpha' on probabilities:
-          # https://stats.stackexchange.com/questions/244917/what-exactly-is-the-alpha-in-the-dirichlet-distribution
-          #psi[r,1:nStates,t] ~ ddirch(alpha[1:nStates])
         }
       }
     
       for (t in 1:(T-1)){ # loop over time
-          psi[1,1:nRivers,t] ~ ddirch(alphaR1[1:nRivers])
-          psi[2,1:nRivers,t] ~ ddirch(alphaR2[1:nRivers])
-          psi[3,1:nRivers,t] ~ ddirch(alphaR3[1:nRivers])
-          psi[4,1:nRivers,t] ~ ddirch(alphaR4[1:nRivers])
-          psi[5,1:nRivers,t] ~ ddirch(alphaR5[1:nRivers])
-          psi[6,1:nRivers,t] ~ ddirch(alphaR6[1:nRivers])
-      }
+        psi[1,1:nRivers,t] ~ ddirch(alphaR1[1:nRivers])
+        psi[2,1:nRivers,t] ~ ddirch(alphaR2[1:nRivers])
+        psi[3,1:nRivers,t] ~ ddirch(alphaR3[1:nRivers])
+        psi[4,1:nRivers,t] ~ ddirch(alphaR4[1:nRivers])
+        psi[5,1:nRivers,t] ~ ddirch(alphaR5[1:nRivers])
+        psi[6,1:nRivers,t] ~ ddirch(alphaR6[1:nRivers])
 
-      for (t in 1:(T-1)){ # loop over time
         gamma[1,1,t] <- ilogit(betaPhi[1,t]) * psi[1,1,t]
         gamma[1,2,t] <- ilogit(betaPhi[1,t]) * psi[1,2,t]
         gamma[1,3,t] <- ilogit(betaPhi[1,t]) * psi[1,3,t]
