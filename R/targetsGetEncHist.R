@@ -116,6 +116,8 @@ getEH <- function(d, cols, ops, vals ){
   first <- apply(eh, 1, function(x) min(which(x != 0)))
   #last <- apply(riverMatrix, 1, function(x) max(which(!is.na(x))))
   #last <- ifelse(last == ncol(riverMatrix), last, last - 1)
+  
+  # set all 'last' to the last occasion - we don't know age
   last <- rep(ncol(riverMatrix) - 0, nrow(riverMatrix))
   
   return(list(eh = eh,

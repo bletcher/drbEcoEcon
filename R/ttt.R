@@ -73,11 +73,8 @@ target_ttt =
       y = ttt_inputData$y + 1
     ),
     
-    ttt_parametersToSave = c("betaPhi", "betaPhiRiver", 
-                             "betaP",   "betaPRiver", 
-                             "betaPhiOut", "betaPhiRiverOut",
+    ttt_parametersToSave = c("betaPhiOut", "betaPhiRiverOut",
                              "betaPOut",   "betaPRiverOut", 
-                             
                              "psi"),
     
     ttt_modelCode = nimbleCode({
@@ -91,15 +88,15 @@ target_ttt =
       delta[7] <- 0                    # Pr(dead t = 1) = 0
 
       for (r in 1:nStates){
-        betaPhiRiver[r] ~ dnorm(0,1)
-        betaPRiver[r] ~ dnorm(0,1)
+        betaPhiRiver[r] ~ dnorm(0,1000)
+        betaPRiver[r] ~ dnorm(0,1000)
 
         betaPhiRiverOut[r] <- ilogit(betaPhiRiver[r])
         betaPRiverOut[r] <- ilogit(betaPRiver[r])
 
         for (t in 1:(T-1)){
-          betaPhi[r,t] ~ dnorm(betaPhiRiver[r],1)
-          betaP[r,t] ~ dnorm(betaPRiver[r],1)
+          betaPhi[r,t] ~ dnorm(betaPhiRiver[r],1000)
+          betaP[r,t] ~ dnorm(betaPRiver[r],1000)
 
           betaPhiOut[r,t] <- ilogit(betaPhi[r,t])
           betaPOut[r,t] <- ilogit(betaP[r,t])
@@ -362,13 +359,17 @@ target_ttt =
         name = "phiT_pT_psiT",
         myConstants = ttt_myConstants,
         runData = ttt_runData
-      )
+      ),
     
-    
-    
+    ttt_save = saveModelOut(ttt_modelOut)
+  
   ) # tar_plan
 
 ############ Functions ###############
+
+saveModelOut <- function(d) {
+  save(d, file = paste0('./models/runsOut/ttt_', substr(Sys.time(),1,13), '.RData'))
+}
 
 initialValues <- function(r, c, aa) {  
   list(
