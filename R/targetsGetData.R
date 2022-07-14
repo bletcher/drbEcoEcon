@@ -1,10 +1,11 @@
 tar_option_set(packages = c("tidyverse", "lubridate"))
 
-target_getData <- 
+#target_readData <- tar_file(d0, "./dataIn/JFIP_ElectrofishingData_Converted.csv", format = "file")
+
+target_getData <-
   tar_plan(
     d0 = read.csv("./dataIn/JFIP_ElectrofishingData_Converted.csv"),
-    # Simple drake-like syntax:
-    #d0 = read_csv(d00),
+   
     dRaw0 = d0 %>%
       select(Longitude, Latitude, Date, Time, SiteLen, Discharge, WaterTemp, GearType, 
              TimeStart, Time.Stop, TimeFish, FishNum, SpeciesCd, Length, Weight, 

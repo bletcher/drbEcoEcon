@@ -33,10 +33,11 @@ lapply(list.files("R", full.names = TRUE, recursive = TRUE), source)
 
 # Replace the target list below with your own:
 list(
-   target_globalVariables,
-   target_getData,
-   target_prepareData,
-   target_getEH,
-   target_ttt,
-   tar_render(report, "main.Rmd")
+  target_globalVariables,
+  #target_readData,
+  target_getData,
+  target_prepareData,
+  target_getEH,
+  target_ttt,
+  tar_render(report, "main.Rmd")
 )
