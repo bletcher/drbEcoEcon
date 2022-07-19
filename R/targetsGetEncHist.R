@@ -9,6 +9,23 @@ target_getEH <-
     target_eh = getEH(target_d, cols, ops, vals)
   )
 
+target_getEH_main <- 
+  tar_plan(
+    cols_main = list("mainTrib"), #list("Water"),
+    ops_main = list("%in%"), #list("%in%"),
+    vals_main = list("main"), #list("West Br Delaware River"),
+    #eh <- getEHDataWide(tar_read(d), cols, ops, vals, date, valuesFill = NA)
+    target_eh_main = getEH(target_d, cols_main, ops_main, vals_main)
+  )
+
+target_getEH_trib <- 
+  tar_plan(
+    cols_trib = list("mainTrib"), #list("Water"),
+    ops_trib = list("%in%"), #list("%in%"),
+    vals_trib = list("trib"), #list("West Br Delaware River"),
+    #eh <- getEHDataWide(tar_read(d), cols, ops, vals, date, valuesFill = NA)
+    target_eh_trib = getEH(target_d, cols_trib, ops_trib, vals_trib)
+  )
 #############################################
 ## Functions for creating encounter histories 
 #############################################
@@ -105,6 +122,9 @@ getEH <- function(d, cols, ops, vals ){
   stateWide <- getEHDataWide(d, cols, ops, vals, "state", valuesFill = 0)
   stateMatrix <- as.matrix(stateWide %>% dplyr::select(-tag), nrow = nrow(stateWide), ncol = ncol(stateWide) - 1)
   
+  sizeStateWide <- getEHDataWide(d, cols, ops, vals, "sizeState", valuesFill = 0)
+  sizeStateMatrix <- as.matrix(sizeStateWide %>% dplyr::select(-tag), nrow = nrow(sizeStateWide), ncol = ncol(sizeStateWide) - 1)
+  
   tags <- encWide %>% dplyr::select(tag)
   
   data <- d %>%
@@ -124,6 +144,7 @@ getEH <- function(d, cols, ops, vals ){
               riverMatrix = riverMatrix,
               riverNMatrix = riverNMatrix,
               stateMatrix = stateMatrix,
+              sizeStateMatrix = sizeStateMatrix,
               tags = tags, 
               first = first, 
               last = last, 

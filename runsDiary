@@ -1,4 +1,6 @@
-07-14 11, sd of dnorm() priors = 1
-07-14 16,  sd of dnorm() priors = 1000
-07-14 x,  sd of dnorm() priors = 0.001
-
+ttt
+  07-14 11, sd of dnorm() priors = 1
+  07-14 16, main_1000,   sd of dnorm() priors = 1000, phi's stuck at 0.5
+  
+  07-14 21, main_0_001,  sd of dnorm() priors = 0.001, changed sizecuttoffs to 230,380, phi's 0 or 1
+  07-15 2,  main_0_1,    sd of dnorm() priors = 0.1, phi's sort of 0 or 1

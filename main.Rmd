@@ -61,7 +61,8 @@ This section (tar_make()) reruns the model
 #str(d)
 ```
 
-Load data for analysis
+Load data for analysis  
+Without a postscript, the data are for all fish (main and trib)
 ```{r getTargets}
 dRaw0 <- tar_read(dRaw0) #all data - including untagged
 dRaw <- tar_read(dRaw) #all data for CMR models
@@ -188,6 +189,25 @@ kable(head(eh$eh,8))
 table(paste(eh$first, eh$last, sep="_"))
 ```
 
+Transitions  
+    *River*       *size1*  *size2*   *size3*  
+      Main           1        2        3  
+      Trib           4        5        6   
+
+There are very few transitions between main and trib and we can characterize size transitions better with a growth model - run phiT_pT models separately for main and trib
+```{r}
+s <- eh$stateMatrix
+s[s == 0] <- NA
+  
+s2 <- data.frame(s) %>%
+  unite("all", sep = "", na.rm = TRUE, remove = TRUE) %>%
+  #distinct() %>%
+  arrange()
+
+table(s2)
+```
+
+
 Summary info for years and occasions
 ```{r}
 
@@ -201,15 +221,30 @@ occs <- colnames(eh$eh)
 
 ### Models
 'phi' = apparent survival (probability of staying in the area = p(survival) + p(not moving out of area)).  
-'p' = probability of capture given that the fish is alive.
-```{r ttt, eval=TRUE}
+'p' = probability of capture given that the fish is alive.  
+
+## phiT_pT_main
+```{r tt main, eval=TRUE}
 ### Read the model run into global memory
-mod <- tar_read(ttt_modelOut)
+if (tar_exist_objects(c("tt_modelOut_main"))) {
+  mod_tt_main <- tar_read(tt_modelOut_main)
+  
+  #MCMCplot(object = mod_tt_main$mcmc, params = "betaPhiOut")
+  #MCMCplot(object = mod_tt_main$mcmc, params = "betaPOut")
+  
+   priors <- rnorm(tar_read(tt_runData_main)$nIter * tar_read(tt_runData_main)$nChains, 0, 1/sqrt(.1))
+   MCMCtrace(object = mod_tt_main$mcmc,
+             #ISB = FALSE,
+             #exact = TRUE,
+             params = c("betaPhiOut"),
+             pdf = FALSE,
+             priors = priors
+             )
+  
+  
+  (modSummary_tt_main <- MCMCsummary(object = mod_tt_main$mcmc, round = 3))
 
-#MCMCplot(object = mod$mcmc)
-
-modSummary <- MCMCsummary(object = mod$mcmc, round = 3)
-
+}
 #kable(modSummary %>%
 #        add_column(data.frame(year = rep(years[1:15], 2), dateYM = rep(occs[1:15], 2)) )
 
@@ -219,51 +254,119 @@ modSummary <- MCMCsummary(object = mod$mcmc, round = 3)
 
 ```
 
-```{r phi Summary, eval=TRUE}
-nS <- tar_read(nStates)
-nT <- tar_read(ttt_myConstants)$T
+## phiT_pT_trib
+```{r tt trib, eval=TRUE}
+### Read the model run into global memory
+if (tar_exist_objects(c("tt_modelOut_trib"))) {
+  mod_tt_trib <- tar_read(tt_modelOut_trib)
+  
+  #MCMCplot(object = mod_tt_trib$mcmc, params = "betaPhiOut")
+  priors <- rnorm(tar_read(tt_runData_trib)$nIter * tar_read(tt_runData_trib)$nChains, 0, 1/sqrt(.1))
+  MCMCtrace(object = mod_tt_trib$mcmc,
+             #ISB = FALSE,
+             #exact = TRUE,
+             params = c("betaPhiOut"),
+             pdf = FALSE,
+             priors = priors
+             )
+  
+  (modSummary_tt_trib <- MCMCsummary(object = mod_tt_trib$mcmc, round = 3))
+  
+  #   MCMCplot(object = mod$mcmc, params = "betaPhiRiverOut")
+#
+#   priors <- rnorm(tar_read(ttt_runData)$nIter * tar_read(ttt_runData)$nChains, 0, 1/sqrt(.1))
+#   MCMCtrace(object = mod$mcmc,
+#             #ISB = FALSE,
+#             #exact = TRUE,
+#             params = c("betaPhiRiverOut"),
+#             pdf = FALSE,
+#             priors = priors
+#             )
+}
+#kable(modSummary %>%
+#        add_column(data.frame(year = rep(years[1:15], 2), dateYM = rep(occs[1:15], 2)) )
 
-modSummaryPhi <- modSummary %>%
-  filter(substr(row.names(modSummary), 1, 10) == "betaPhiOut") %>%
-  add_column(data.frame(state = 1:nS, dateYM = rep(1:(nT - 1), each = nS))) %>%
-  mutate(mainTrib = ifelse(state < 4, "Main", "Trib"),
-         size = paste0("Size", (state - 1) %% 3 + 1))
 
-ggplot(modSummaryPhi, aes(dateYM, mean)) +
-  geom_point() +
-  geom_line() +
-  facet_grid(mainTrib ~ size)
-
-
-# modSummaryYears <- modSummary %>%
-#   filter(substr(row.names(modSummary), 1, 3) == "betaPhiout") %>%
-#   add_column(data.frame(year = years[1:15], dateYM = occs[1:15], occ = 1:15)) %>%
-#   group_by(year) %>%
-#   mutate(maxSampPerYear = occ == max(occ))
-# 
-# kable(
-#   modSummaryYears %>%
-#   group_by(year) %>%
-#   filter(!maxSampPerYear) %>%
-#   summarize(phiProd = prod(mean),
-#             dateRange = range(dateYM)) %>%
-#     as.data.frame()
-# )
-  MCMCplot(object = mod$mcmc, params = "betaPhiRiverOut")
-
-  priors <- rnorm(tar_read(ttt_runData)$nIter * tar_read(ttt_runData)$nChains, 0, 1/sqrt(.1))
-  MCMCtrace(object = mod$mcmc,
-            #ISB = FALSE,
-            #exact = TRUE, 
-            params = c("betaPhiRiverOut"),
-            pdf = FALSE, 
-            priors = priors
-            )
+#  d %>%
+#  summarize(unique(data.frame(dateYM, occ)))
 
 ```
 
 
-```{r p summary, eval=TRUE}
+
+## phiT_pT_psiT  
+Main and trib together
+```{r ttt, eval=TRUE}
+### Read the model run into global memory
+if (tar_exist_objects(c("ttt_modelOut"))) {
+  mod_ttt <- tar_read(ttt_modelOut)
+  
+  #MCMCplot(object = mod$mcmc)
+  
+  modSummary_ttt <- MCMCsummary(object = mod_ttt$mcmc, round = 3)
+}
+#kable(modSummary %>%
+#        add_column(data.frame(year = rep(years[1:15], 2), dateYM = rep(occs[1:15], 2)) )
+
+
+#  d %>%
+#  summarize(unique(data.frame(dateYM, occ)))
+
+```
+
+```{r ttt phi Summary, eval=TRUE}
+# nS <- tar_read(ttt_nStates)
+# nT <- tar_read(ttt_myConstants)$T
+# 
+# modSummaryPhi_ttt <- modSummary_ttt %>%
+#   filter(substr(row.names(modSummary), 1, 10) == "betaPhiOut") %>%
+#   add_column(data.frame(state = 1:nS, dateYM = rep(1:(nT - 1), each = nS))) %>%
+#   mutate(mainTrib = ifelse(state < 4, "Main", "Trib"),
+#          size = paste0("Size", (state - 1) %% 3 + 1))
+# 
+# ggplot(modSummaryPhi_ttt, aes(dateYM, mean)) +
+#   geom_point() +
+#   geom_line() +
+#   facet_grid(mainTrib ~ size)
+# 
+# 
+# # modSummaryYears <- modSummary %>%
+# #   filter(substr(row.names(modSummary), 1, 3) == "betaPhiout") %>%
+# #   add_column(data.frame(year = years[1:15], dateYM = occs[1:15], occ = 1:15)) %>%
+# #   group_by(year) %>%
+# #   mutate(maxSampPerYear = occ == max(occ))
+# # 
+# # kable(
+# #   modSummaryYears %>%
+# #   group_by(year) %>%
+# #   filter(!maxSampPerYear) %>%
+# #   summarize(phiProd = prod(mean),
+# #             dateRange = range(dateYM)) %>%
+# #     as.data.frame()
+# # )
+#   MCMCplot(object = mod$mcmc, params = "betaPhiRiverOut")
+# 
+#   priors <- rnorm(tar_read(ttt_runData)$nIter * tar_read(ttt_runData)$nChains, 0, 1/sqrt(.1))
+#   MCMCtrace(object = mod$mcmc,
+#             #ISB = FALSE,
+#             #exact = TRUE, 
+#             params = c("betaPhiRiverOut"),
+#             pdf = FALSE, 
+#             priors = priors
+#             )
+#   
+#     MCMCtrace(object = mod$mcmc,
+#             #ISB = FALSE,
+#             #exact = TRUE, 
+#             params = c("betaPhiOut"),
+#             pdf = FALSE, 
+#             priors = priors
+#             )
+
+```
+
+
+```{r p summary ttt, eval=TRUE}
 #create data frame for summarizing p results
 
 # modSummaryYearsP <- modSummary %>%
@@ -280,24 +383,24 @@ ggplot(modSummaryPhi, aes(dateYM, mean)) +
 #   )
 ```
 
-```{r psi summary}
+```{r psi summary ttt}
 
-# modSummaryYearsP <- modSummary %>%
-#   filter(substr(row.names(modSummary), 1, 2) == "p[") %>%
-#   add_column(data.frame(year = years[1:15], dateYM = occs[1:15], occ = 1:15)) %>%
-#   group_by(year) %>%
-#   mutate(maxSampPerYear = occ == max(occ))
-
-modSummaryPsi <- modSummary %>%
-  filter(substr(row.names(modSummary), 1, 3) == "psi") %>%
-  add_column(data.frame(state = 1:nS, state2 = rep(1:nS, each = nS), dateYM = rep(1:(nT - 1), each = nS * nS))) %>%
-  mutate(mainTrib = ifelse(state < 4, "Main", "Trib"),
-         size = paste0("Size", (state - 1) %% 3 + 1))
-
-ggplot(modSummaryPsi, aes(dateYM, mean, color = factor(state2))) +
-  geom_point() +
-  facet_grid(mainTrib ~ size)
-
+# # modSummaryYearsP <- modSummary %>%
+# #   filter(substr(row.names(modSummary), 1, 2) == "p[") %>%
+# #   add_column(data.frame(year = years[1:15], dateYM = occs[1:15], occ = 1:15)) %>%
+# #   group_by(year) %>%
+# #   mutate(maxSampPerYear = occ == max(occ))
+# 
+# modSummaryPsi_ttt <- modSummary_ttt %>%
+#   filter(substr(row.names(modSummary_ttt), 1, 3) == "psi") %>%
+#   add_column(data.frame(state = 1:nS, state2 = rep(1:nS, each = nS), dateYM = rep(1:(nT - 1), each = nS * nS))) %>%
+#   mutate(mainTrib = ifelse(state < 4, "Main", "Trib"),
+#          size = paste0("Size", (state - 1) %% 3 + 1))
+# 
+# ggplot(modSummaryPsi_ttt, aes(dateYM, mean, color = factor(state2))) +
+#   geom_point() +
+#   facet_grid(mainTrib ~ size)
+# 
 
 ```
 

@@ -1,6 +1,6 @@
 tar_option_set(packages = c("tidyverse", "nimble", "nimbleEcology", "MCMCvis"))
 
-target_ttt = 
+ttt = 
   tar_plan(
     
     ttt_nStates = length(unique(target_eh$data$state)),
@@ -90,15 +90,15 @@ target_ttt =
       delta[7] <- 0                    # Pr(dead t = 1) = 0
 
       for (r in 1:nStates){
-        betaPhiRiver[r] ~ dnorm(0,0.001) # r should be changed to s and river to state throughout
-        betaPRiver[r] ~ dnorm(0,0.001)
+        betaPhiRiver[r] ~ dnorm(0,sd = 5) # r should be changed to s and river to state throughout
+        betaPRiver[r] ~ dnorm(0,sd = 5)
 
         betaPhiRiverOut[r] <- ilogit(betaPhiRiver[r])
         betaPRiverOut[r] <- ilogit(betaPRiver[r])
 
         for (t in 1:(T-1)){
-          betaPhi[r,t] ~ dnorm(betaPhiRiver[r],0.001)
-          betaP[r,t] ~ dnorm(betaPRiver[r],0.001)
+          betaPhi[r,t] ~ dnorm(betaPhiRiver[r],sd = 5)
+          betaP[r,t] ~ dnorm(betaPRiver[r],sd = 5)
 
           betaPhiOut[r,t] <- ilogit(betaPhi[r,t])
           betaPOut[r,t] <- ilogit(betaP[r,t])
@@ -327,7 +327,7 @@ target_ttt =
       code = ttt_modelCode,
       constants = ttt_myConstants,
       data = ttt_myData$y,
-      inits = initialValues(ttt_nRivers, ttt_myConstants, ttt_alpha),
+      inits = initialValues_ttt(ttt_nRivers, ttt_myConstants, ttt_alpha),
       calculate = FALSE
     ),
     
@@ -366,7 +366,7 @@ saveModelOut <- function(d) {
   save(d, file = paste0('./models/runsOut/ttt_', substr(Sys.time(),1,13), '.RData'))
 }
 
-initialValues <- function(r, c, aa) {  
+initialValues_ttt <- function(r, c, aa) {  
   list(
     betaPhiRiver = array(runif(r, 0, 1), c(r)),
     betaPhi = array(rnorm(r * (c$T - 1), 0, 1), c(r, (c$T - 1))),
@@ -374,11 +374,11 @@ initialValues <- function(r, c, aa) {
     betaPRiver = array(runif(r, 0, 1), c(r)),
     betaP = array(rnorm(r * (c$T - 1), 0, 1), c(r, (c$T - 1))),
     
-    psi = getDirchPriorsR(r, c, aa)
+    psi = getDirchPriorsR_ttt(r, c, aa)
   )
 }
 
-getDirchPriorsR <- function(s, c, aa){
+getDirchPriorsR_ttt <- function(s, c, aa){
   a <- array(rep(0, s * s * (c$T - 1)), c(s, s, (c$T - 1)))
   #for(r in 1:s){
     for(t in 1:(c$T - 1)){
