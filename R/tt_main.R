@@ -5,7 +5,7 @@ tt_main =
     
     tt_inputData_main =
       list(
-        y = target_eh_main$stateMatrix,
+        y = target_eh_main$sizeStateMatrix,
         deltaProps = as.numeric(
           table(target_eh_main$stateMatrix[target_eh_main$stateMatrix > 0]) / 
                            length(target_eh_main$stateMatrix[target_eh_main$stateMatrix > 0])
@@ -20,16 +20,16 @@ tt_main =
     
     tt_runData_main = list(
       # Updateable model-specific variables 
-      nIter = 10000, 
-      nBurnin = 2500, 
+      nIter = 5000, 
+      nBurnin = 2000, 
       nChains = 2,
       thinRate = 5
     ),
 
     tt_alpha_main = list(
-      alphaR1 = c(0.7,0.1,0.1),
-      alphaR2 = c(0.1,0.7,0.1),
-      alphaR3 = c(0.1,0.1,0.7)
+      alphaR1 = c(0.8,0.1,0.1),
+      alphaR2 = c(0.1,0.8,0.1),
+      alphaR3 = c(0.1,0.1,0.8)
     ),
     
     tt_myConstants_main = list(
@@ -53,9 +53,6 @@ tt_main =
       y = tt_inputData_main$y + 1
     ),
 
-    tt_parametersToSave_main = c("betaPhiOut", "betaPOut",
-                            "psi"),
-     
     tt_modelCode_main = nimbleCode({
       # Initial distribution among rivers
       delta[1] <- deltaProps[1]                  # Pr(alive t = 1 and in river 1) = 0.4
@@ -65,11 +62,13 @@ tt_main =
 
       for (r in 1:nStates){
         for (t in 1:(T-1)){
-          betaPhi[r,t] ~ dnorm(0, sd = 5)
-          betaP[r,t] ~ dnorm(0, sd = 5)
+          #betaPhi[r,t] ~ dnorm(0, sd = 1)
+          #betaP[r,t] ~ dnorm(0, sd = 1)
+          betaPhi[r,t] ~ dunif(0,1)
+          betaP[r,t] ~ dunif(0,1)
 
-          betaPhiOut[r,t] <- ilogit(betaPhi[r,t])
-          betaPOut[r,t] <- ilogit(betaP[r,t])
+          #betaPhiOut[r,t] <- ilogit(betaPhi[r,t])
+          #betaPOut[r,t] <- ilogit(betaP[r,t])
         }
       }
 
@@ -77,22 +76,22 @@ tt_main =
         psi[1,1:nStates,t] ~ ddirch(alphaR1[1:nStates])
         psi[2,1:nStates,t] ~ ddirch(alphaR2[1:nStates])
         psi[3,1:nStates,t] ~ ddirch(alphaR3[1:nStates])
-
-        gamma[1,1,t] <- ilogit(betaPhi[1,t]) * psi[1,1,t]
-        gamma[1,2,t] <- ilogit(betaPhi[1,t]) * psi[1,2,t]
-        gamma[1,3,t] <- ilogit(betaPhi[1,t]) * psi[1,3,t]
-        gamma[1,4,t] <- 1 - ilogit(betaPhi[1,t])
-
-        gamma[2,1,t] <- ilogit(betaPhi[2,t]) * psi[2,1,t]
-        gamma[2,2,t] <- ilogit(betaPhi[2,t]) * psi[2,2,t]
-        gamma[2,3,t] <- ilogit(betaPhi[2,t]) * psi[2,3,t]
-        gamma[2,4,t] <- 1 - ilogit(betaPhi[2,t])
-
-        gamma[3,1,t] <- ilogit(betaPhi[3,t]) * psi[3,1,t]
-        gamma[3,2,t] <- ilogit(betaPhi[3,t]) * psi[3,2,t]
-        gamma[3,3,t] <- ilogit(betaPhi[3,t]) * psi[3,3,t]
-        gamma[3,4,t] <- 1 - ilogit(betaPhi[3,t])
-
+        
+        gamma[1,1,t] <- (betaPhi[1,t]) * psi[1,1,t]
+        gamma[1,2,t] <- (betaPhi[1,t]) * psi[1,2,t]
+        gamma[1,3,t] <- (betaPhi[1,t]) * psi[1,3,t]
+        gamma[1,4,t] <- 1 - (betaPhi[1,t])
+        
+        gamma[2,1,t] <- (betaPhi[2,t]) * psi[2,1,t]
+        gamma[2,2,t] <- (betaPhi[2,t]) * psi[2,2,t]
+        gamma[2,3,t] <- (betaPhi[2,t]) * psi[2,3,t]
+        gamma[2,4,t] <- 1 - (betaPhi[2,t])
+        
+        gamma[3,1,t] <- (betaPhi[3,t]) * psi[3,1,t]
+        gamma[3,2,t] <- (betaPhi[3,t]) * psi[3,2,t]
+        gamma[3,3,t] <- (betaPhi[3,t]) * psi[3,3,t]
+        gamma[3,4,t] <- 1 - (betaPhi[3,t])
+        
         gamma[4,1,t] <- 0
         gamma[4,2,t] <- 0
         gamma[4,3,t] <- 0
@@ -166,7 +165,7 @@ tt_main =
 
         } # t loop
       } # i loop
-
+        
       for (i in 1:N){
         y[i,first[i]:last[i]] ~ dDHMMo(init = delta[1:4],
                                        probTrans = gamma[1:4, 1:4, first[i]:last[i]],
@@ -174,17 +173,31 @@ tt_main =
                                        len = length[i],
                                        checkRowSums = 1)
       }
+      
+      # # likelihood 
+      # for (i in 1:N){
+      #   # latent state at first capture
+      #   z[i,first[i]] <- y[i,first[i]] - 1
+      #   for (t in (first[i]+1):K){
+      #     # z(t) given z(t-1)
+      #     z[i,t] ~ dcat(gamma[z[i,t-1],1:4])
+      #     # y(t) given z(t)
+      #     y[i,t] ~ dcat(omega[z[i,t],1:4])
+      #   }
+      # }
 
     }),
 
     tt_Rmodel_main = nimbleModel(
       code = tt_modelCode_main,
       constants = tt_myConstants_main,
-      data = tt_myData_main$y,
+      data = tt_myData_main,
       inits = initialValues_tt_main(tt_inputData_main$nStates, tt_myConstants_main$T, tt_alpha_main),
       calculate = FALSE
     ),
 
+    tt_parametersToSave_main = c("betaPhi", "betaP", "psi"),
+    
     tt_conf_main = configureMCMC(
       tt_Rmodel_main,
       monitors = tt_parametersToSave_main
@@ -206,6 +219,7 @@ tt_main =
       list(
         mcmc = tt_model_main,
         name = "phiT_pT_main",
+        modelCode = tt_modelCode_main,
         myConstants = tt_myConstants_main,
         runData = tt_runData_main
       ),
@@ -220,10 +234,14 @@ saveModelOut_tt_main <- function(d) {
   save(d, file = paste0('./models/runsOut/tt_main_', substr(Sys.time(),1,13), '.RData'))
 }
 
+
 initialValues_tt_main <- function(s, t, a) {
   list(
-    betaPhi = array(rnorm(s * (t - 1), 0, 1), c(s, (t - 1))),
-    betaP =   array(rnorm(s * (t - 1), 0, 1), c(s, (t - 1))),
+    #betaPhi = array(rnorm(s * (t - 1), 0, 1), c(s, (t - 1))),
+    #betaP =   array(rnorm(s * (t - 1), 0, 1), c(s, (t - 1))),
+    
+    betaPhi = array(runif(s * (t - 1), 0, 1), c(s, (t - 1))),
+    betaP =   array(runif(s * (t - 1), 0, 1), c(s, (t - 1))),
     
     psi = getDirchPriorsR_tt_main(s, t, a)
   )

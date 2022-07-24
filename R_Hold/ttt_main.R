@@ -1,24 +1,24 @@
 tar_option_set(packages = c("tidyverse", "nimble", "nimbleEcology", "MCMCvis"))
 
-tt_trib = 
+ttt_main = 
   tar_plan(
     
-    tt_inputData_trib =
+    tt_inputData_main =
       list(
-        y = target_eh_trib$sizeStateMatrix,
+        y = target_eh_main$stateMatrix,
         deltaProps = as.numeric(
-          table(target_eh_trib$stateMatrix[target_eh_trib$stateMatrix > 0]) / 
-                           length(target_eh_trib$stateMatrix[target_eh_trib$stateMatrix > 0])
+          table(target_eh_main$stateMatrix[target_eh_main$stateMatrix > 0]) / 
+                           length(target_eh_main$stateMatrix[target_eh_main$stateMatrix > 0])
           ),
-        first = target_eh_trib$first, 
-        last = target_eh_trib$last, 
-        zInits = getInits_tt_trib(target_eh_trib$eh),
+        first = target_eh_main$first, 
+        last = target_eh_main$last, 
+        zInits = getInits_tt_main(target_eh_main$eh),
         
-        nStates = length(unique(target_eh_trib$data$sizeState)),
-        nRivers = length(unique(target_eh_trib$data$sizeState)) # for now
+        nStates = length(unique(target_eh_main$data$sizeState)),
+        nRivers = length(unique(target_eh_main$data$sizeState)) # for now
       ),   
     
-    tt_runData_trib = list(
+    tt_runData_main = list(
       # Updateable model-specific variables 
       nIter = 5000, 
       nBurnin = 2000, 
@@ -26,47 +26,47 @@ tt_trib =
       thinRate = 5
     ),
 
-    tt_alpha_trib = list(
-      alphaR1 = c(0.8,0.1,0.1), #change to .71 to trigger rerun
-      alphaR2 = c(0.1,0.8,0.1),
-      alphaR3 = c(0.1,0.1,0.8)
+    tt_alpha_main = list(
+      alphaR1 = c(0.3,0.1,0.1),
+      alphaR2 = c(0.1,0.3,0.1),
+      alphaR3 = c(0.1,0.1,0.3)
     ),
     
-    tt_myConstants_trib = list(
-      N = nrow(tt_inputData_trib$y),
-      T = ncol(tt_inputData_trib$y),
-      first = tt_inputData_trib$first,
-      last = tt_inputData_trib$last,
+    tt_myConstants_main = list(
+      N = nrow(tt_inputData_main$y),
+      T = ncol(tt_inputData_main$y),
+      first = tt_inputData_main$first,
+      last = tt_inputData_main$last,
 
-      nRivers = tt_inputData_trib$nRivers,
-      length = tt_inputData_trib$last - tt_inputData_trib$first + 1,
+      nRivers = tt_inputData_main$nRivers,
+      length = tt_inputData_main$last - tt_inputData_main$first + 1,
 
-      alphaR1 = tt_alpha_trib$alphaR1,
-      alphaR2 = tt_alpha_trib$alphaR2,
-      alphaR3 = tt_alpha_trib$alphaR3,
+      alphaR1 = tt_alpha_main$alphaR1,
+      alphaR2 = tt_alpha_main$alphaR2,
+      alphaR3 = tt_alpha_main$alphaR3,
 
-      deltaProps = tt_inputData_trib$deltaProps,
-      nStates = tt_inputData_trib$nStates
+      deltaProps = tt_inputData_main$deltaProps,
+      nStates = tt_inputData_main$nStates
     ),
 
-    tt_myData_trib = list(
-      y = tt_inputData_trib$y + 1
+    tt_myData_main = list(
+      y = tt_inputData_main$y + 1
     ),
 
-    tt_modelCode_trib = nimbleCode({
+    tt_modelCode_main = nimbleCode({
       # Initial distribution among rivers
       delta[1] <- deltaProps[1]                  # Pr(alive t = 1 and in river 1) = 0.4
       delta[2] <- deltaProps[2]
       delta[3] <- deltaProps[3]
       delta[4] <- 0                    # Pr(dead t = 1) = 0
 
-      for (s in 1:nStates){
+      for (r in 1:nStates){
         for (t in 1:(T-1)){
           #betaPhi[r,t] ~ dnorm(0, sd = 1)
           #betaP[r,t] ~ dnorm(0, sd = 1)
-          betaPhi[s,t] ~ dunif(0,1)
-          betaP[s,t] ~ dunif(0,1)
-          
+          betaPhi[r,t] ~ dnorm(0,1)
+          betaP[r,t] ~ dnorm(0,1)
+
           #betaPhiOut[r,t] <- ilogit(betaPhi[r,t])
           #betaPOut[r,t] <- ilogit(betaP[r,t])
         }
@@ -81,12 +81,12 @@ tt_trib =
         gamma[1,2,t] <- (betaPhi[1,t]) * psi[1,2,t]
         gamma[1,3,t] <- (betaPhi[1,t]) * psi[1,3,t]
         gamma[1,4,t] <- 1 - (betaPhi[1,t])
-        
+
         gamma[2,1,t] <- (betaPhi[2,t]) * psi[2,1,t]
         gamma[2,2,t] <- (betaPhi[2,t]) * psi[2,2,t]
         gamma[2,3,t] <- (betaPhi[2,t]) * psi[2,3,t]
         gamma[2,4,t] <- 1 - (betaPhi[2,t])
-        
+
         gamma[3,1,t] <- (betaPhi[3,t]) * psi[3,1,t]
         gamma[3,2,t] <- (betaPhi[3,t]) * psi[3,2,t]
         gamma[3,3,t] <- (betaPhi[3,t]) * psi[3,3,t]
@@ -176,62 +176,65 @@ tt_trib =
 
     }),
 
-    tt_Rmodel_trib = nimbleModel(
-      code = tt_modelCode_trib,
-      constants = tt_myConstants_trib,
-      data = tt_myData_trib,
-      inits = initialValues_tt_trib(tt_inputData_trib$nStates, tt_myConstants_trib$T, tt_alpha_trib),
+    tt_Rmodel_main = nimbleModel(
+      code = tt_modelCode_main,
+      constants = tt_myConstants_main,
+      data = tt_myData_main$y,
+      inits = initialValues_tt_main(tt_inputData_main$nStates, tt_myConstants_main$T, tt_alpha_main),
       calculate = FALSE
     ),
 
-    tt_parametersToSave_trib = c("betaPhi", "betaP", "psi"),
+    tt_parametersToSave_main = c("betaPhi", "betaP", "psi"),
     
-    tt_conf_trib = configureMCMC(
-      tt_Rmodel_trib,
-      monitors = tt_parametersToSave_trib
+    tt_conf_main = configureMCMC(
+      tt_Rmodel_main,
+      monitors = tt_parametersToSave_main
     ),
 
-    tt_Rmcmc_trib = buildMCMC(tt_conf_trib, useConjugacy = FALSE),
-    tt_Cmodel_trib = compileNimble(tt_Rmodel_trib),
-    tt_Cmcmc_trib = compileNimble(tt_Rmcmc_trib, project = tt_Rmodel_trib),
+    tt_Rmcmc_main = buildMCMC(tt_conf_main, useConjugacy = FALSE),
+    tt_Cmodel_main = compileNimble(tt_Rmodel_main),
+    tt_Cmcmc_main = compileNimble(tt_Rmcmc_main, project = tt_Rmodel_main),
 
-    tt_model_trib = runMCMC(
-      tt_Cmcmc_trib,
-      niter = tt_runData_trib$nIter,
-      nburnin = tt_runData_trib$nBurnin,
-      thin = tt_runData_trib$thinRate,
-      nchains = tt_runData_trib$nChains
+    tt_model_main = runMCMC(
+      tt_Cmcmc_main,
+      niter = tt_runData_main$nIter,
+      nburnin = tt_runData_main$nBurnin,
+      thin = tt_runData_main$thinRate,
+      nchains = tt_runData_main$nChains
     ),
 
-    tt_modelOut_trib =
+    tt_modelOut_main =
       list(
-        mcmc = tt_model_trib, # "Error : invalid nimbleFunction argument"
-        name = "phiT_pT_trib",
-        modelCode = tt_modelCode_trib,
-        myConstants = tt_myConstants_trib,
-        runData = tt_runData_trib
+        mcmc = tt_model_main,
+        name = "phiT_pT_main",
+        modelCode = tt_modelCode_main,
+        myConstants = tt_myConstants_main,
+        runData = tt_runData_main
       ),
 
-    tt_save_trib = saveModelOut_tt_trib(tt_modelOut_trib)
+    tt_save_main = saveModelOut_tt_main(tt_modelOut_main)
 
   ) # tar_plan
 
 ############ Functions ###############
 
-saveModelOut_tt_trib <- function(d) {
-  save(d, file = paste0('./models/runsOut/tt_trib_', substr(Sys.time(),1,13), '.RData'))
+saveModelOut_tt_main <- function(d) {
+  save(d, file = paste0('./models/runsOut/tt_main_', substr(Sys.time(),1,13), '.RData'))
 }
 
-initialValues_tt_trib <- function(s, t, a) {
+initialValues_tt_main <- function(s, t, a) {
   list(
+    #betaPhi = array(rnorm(s * (t - 1), 0, 1), c(s, (t - 1))),
+    #betaP =   array(rnorm(s * (t - 1), 0, 1), c(s, (t - 1))),
+    
     betaPhi = array(runif(s * (t - 1), 0, 1), c(s, (t - 1))),
     betaP =   array(runif(s * (t - 1), 0, 1), c(s, (t - 1))),
     
-    psi = getDirchPriorsR_tt_trib(s, t, a)
+    psi = getDirchPriorsR_tt_main(s, t, a)
   )
 }
 
-getDirchPriorsR_tt_trib <- function(s, tt, aa){
+getDirchPriorsR_tt_main <- function(s, tt, aa){
   a <- array(rep(0, s * s * (tt - 1)), c(s, s, (tt - 1)))
   for(t in 1:(tt - 1)){
     a[1,1:s,t] <- rdirch(1, aa$alphaR1)
@@ -241,7 +244,8 @@ getDirchPriorsR_tt_trib <- function(s, tt, aa){
   return(a)
 }
 
-getInits_tt_trib <- function(y) {
+
+getInits_tt_main <- function(y) {
   zInits <- y + 1 # non-detection -> alive
   zInits[zInits == 2] = 1 # dead -> alive
   return(zInits)

@@ -224,6 +224,20 @@ occs <- colnames(eh$eh)
 'p' = probability of capture given that the fish is alive.  
 
 ## phiT_pT_main
+
+Load data 'main' for analysis  
+```{r getTargets main}
+#d_tt <- tar_read(target_d_trib)
+eh_main <- tar_read(target_eh_main)
+
+str(eh_main$eh)
+kable(head(eh_main$eh,8))
+
+table(paste(eh_main$first, eh_main$last, sep="_"))
+
+```
+
+
 ```{r tt main, eval=TRUE}
 ### Read the model run into global memory
 if (tar_exist_objects(c("tt_modelOut_main"))) {
@@ -236,11 +250,11 @@ if (tar_exist_objects(c("tt_modelOut_main"))) {
    MCMCtrace(object = mod_tt_main$mcmc,
              #ISB = FALSE,
              #exact = TRUE,
-             params = c("betaPhiOut"),
+             params = c("betaPhi"),
              pdf = FALSE,
              priors = priors
              )
-  
+
   
   (modSummary_tt_main <- MCMCsummary(object = mod_tt_main$mcmc, round = 3))
 
@@ -255,21 +269,34 @@ if (tar_exist_objects(c("tt_modelOut_main"))) {
 ```
 
 ## phiT_pT_trib
+
+Load data 'trib' for analysis  
+```{r getTargets trib}
+#d_tt <- tar_read(target_d_trib)
+eh_trib <- tar_read(target_eh_trib)
+
+str(eh_trib$eh)
+kable(head(eh_trib$eh,8))
+
+table(paste(eh_trib$first, eh_trib$last, sep="_"))
+
+```
+
 ```{r tt trib, eval=TRUE}
 ### Read the model run into global memory
 if (tar_exist_objects(c("tt_modelOut_trib"))) {
   mod_tt_trib <- tar_read(tt_modelOut_trib)
   
-  #MCMCplot(object = mod_tt_trib$mcmc, params = "betaPhiOut")
+  #MCMCplot(object = mod_tt_trib$mcmc, params = "betaPhi")
   priors <- rnorm(tar_read(tt_runData_trib)$nIter * tar_read(tt_runData_trib)$nChains, 0, 1/sqrt(.1))
   MCMCtrace(object = mod_tt_trib$mcmc,
              #ISB = FALSE,
              #exact = TRUE,
-             params = c("betaPhiOut"),
+             params = c("betaPhi"),
              pdf = FALSE,
              priors = priors
              )
-  
+  # 
   (modSummary_tt_trib <- MCMCsummary(object = mod_tt_trib$mcmc, round = 3))
   
   #   MCMCplot(object = mod$mcmc, params = "betaPhiRiverOut")

@@ -31,7 +31,6 @@ future::plan(future.callr::callr)
 lapply(list.files("R", full.names = TRUE, recursive = TRUE), source)
 # source("other_functions.R") # Source other scripts as needed. # nolint
 
-# Replace the target list below with your own:
 list(
   target_globalVariables,
   target_getData,
@@ -39,7 +38,7 @@ list(
   target_getEH,
   target_getEH_main,
   target_getEH_trib,
-  tt_main,
-  tt_trib,
+  #tt_main,
+  #tt_trib
   tar_render(report, "main.Rmd")
 )
