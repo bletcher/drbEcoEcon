@@ -7,10 +7,6 @@ editor_options:
   chunk_output_type: console
 ---
 
-```{r, include=FALSE}
-
-```
-
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
 
@@ -50,7 +46,7 @@ This section (tar_make()) reruns the model
 #  tar_watch(seconds = 10, outdated = FALSE, targets_only = TRUE)
 
 
-# comment this out when kniting - get Latex error that it can't find the check mark the tar_make() uses
+# comment this out when knitting - get Latex error that it can't find the check mark the tar_make() uses
 #tar_make()
 
 # tar_prune() # cleans unused data files
@@ -219,11 +215,11 @@ occs <- colnames(eh$eh)
 ```
 
 
-### Models
+## Models
 'phi' = apparent survival (probability of staying in the area = p(survival) + p(not moving out of area)).  
 'p' = probability of capture given that the fish is alive.  
 
-## phiT_pT_main
+### phiT_pT_main
 
 Load data 'main' for analysis  
 ```{r getTargets main}
@@ -231,7 +227,7 @@ Load data 'main' for analysis
 eh_main <- tar_read(target_eh_main)
 
 str(eh_main$eh)
-kable(head(eh_main$eh,8))
+#kable(eh_main$eh[1:8,1:10])
 
 table(paste(eh_main$first, eh_main$last, sep="_"))
 
@@ -243,20 +239,66 @@ table(paste(eh_main$first, eh_main$last, sep="_"))
 if (tar_exist_objects(c("tt_modelOut_main"))) {
   mod_tt_main <- tar_read(tt_modelOut_main)
   
-  #MCMCplot(object = mod_tt_main$mcmc, params = "betaPhiOut")
-  #MCMCplot(object = mod_tt_main$mcmc, params = "betaPOut")
+  MCMCplot(object = mod_tt_main$mcmc, params = "betaPhi")
+  MCMCplot(object = mod_tt_main$mcmc, params = "betaP")
   
    priors <- rnorm(tar_read(tt_runData_main)$nIter * tar_read(tt_runData_main)$nChains, 0, 1/sqrt(.1))
    MCMCtrace(object = mod_tt_main$mcmc,
-             #ISB = FALSE,
-             #exact = TRUE,
-             params = c("betaPhi"),
+             ISB = FALSE,
+             exact = TRUE,
+             params = c("betaPhi[1, 1]", "betaPhi[2, 1]", "betaPhi[3, 1]",
+                        "betaPhi[1, 2]", "betaPhi[2, 2]", "betaPhi[3, 2]",
+                        "betaPhi[1, 3]", "betaPhi[2, 3]", "betaPhi[3, 3]"),
              pdf = FALSE,
              priors = priors
              )
 
+      MCMCtrace(object = mod_tt_main$mcmc,
+             ISB = FALSE,
+             exact = TRUE,
+             params = c("betaP[1, 1]", "betaP[2, 1]", "betaP[3, 1]",
+                        "betaP[1, 2]", "betaP[2, 2]", "betaP[3, 2]",
+                        "betaP[1, 3]", "betaP[2, 3]", "betaP[3, 3]"),
+             pdf = FALSE,
+             priors = priors
+             )
   
   (modSummary_tt_main <- MCMCsummary(object = mod_tt_main$mcmc, round = 3))
+      
+  nS <- mod_tt_main$myConstants$nStates
+  nT <- mod_tt_main$myConstants$T 
+    
+  phi_tt_main <- modSummary_tt_main %>% 
+    filter(substr(row.names(modSummary_tt_main), 1, 7) == "betaPhi") %>%
+    add_column(data.frame(state = 1:nS, dateYM = rep(1:(nT - 1), each = nS))) 
+
+  (
+    phi_tt_main_means <- phi_tt_main %>%
+    group_by(state) %>%
+    summarise(meanPhi = mean(mean),
+              sdPhi = sd(mean),
+              mean025 = mean(cur_data()[[3]]),
+              mean50 = mean(cur_data()[[4]]),
+              mean975 = mean(cur_data()[[5]])) %>%
+    mutate(river = "main") %>%
+    ungroup()
+    )
+    
+  psi_tt_main <- modSummary_tt_main %>% 
+    filter(substr(row.names(modSummary_tt_main), 1, 3) == "psi") %>%
+    add_column(data.frame(stateFrom = 1:nS, stateTo = rep(1:nS, each = nS), dateYM = rep(1:(nT - 1), each = nS*nS))) 
+
+  (
+    psi_tt_main_means <- psi_tt_main %>%
+    group_by(stateFrom, stateTo) %>%
+    summarise(meanPhi = mean(mean),
+              sdPhi = sd(mean),
+              mean025 = mean(cur_data()[[3]]),
+              mean50 = mean(cur_data()[[4]]),
+              mean975 = mean(cur_data()[[5]])) %>%
+    mutate(river = "main") %>%
+    ungroup()
+    )
 
 }
 #kable(modSummary %>%
@@ -276,39 +318,78 @@ Load data 'trib' for analysis
 eh_trib <- tar_read(target_eh_trib)
 
 str(eh_trib$eh)
-kable(head(eh_trib$eh,8))
+#kable(eh_trib$eh[1:8,1:10])
 
 table(paste(eh_trib$first, eh_trib$last, sep="_"))
 
 ```
 
+Plot trib model estimates
 ```{r tt trib, eval=TRUE}
 ### Read the model run into global memory
 if (tar_exist_objects(c("tt_modelOut_trib"))) {
   mod_tt_trib <- tar_read(tt_modelOut_trib)
   
-  #MCMCplot(object = mod_tt_trib$mcmc, params = "betaPhi")
-  priors <- rnorm(tar_read(tt_runData_trib)$nIter * tar_read(tt_runData_trib)$nChains, 0, 1/sqrt(.1))
-  MCMCtrace(object = mod_tt_trib$mcmc,
-             #ISB = FALSE,
-             #exact = TRUE,
-             params = c("betaPhi"),
+  MCMCplot(object = mod_tt_trib$mcmc, params = "betaPhi")
+  MCMCplot(object = mod_tt_trib$mcmc, params = "betaP")
+
+   MCMCtrace(object = mod_tt_trib$mcmc,
+             ISB = FALSE,
+             exact = TRUE,
+             params = c("betaPhi[1, 1]", "betaPhi[2, 1]", "betaPhi[3, 1]",
+                        "betaPhi[1, 2]", "betaPhi[2, 2]", "betaPhi[3, 2]",
+                        "betaPhi[1, 3]", "betaPhi[2, 3]", "betaPhi[3, 3]"),
              pdf = FALSE,
              priors = priors
              )
+
+    MCMCtrace(object = mod_tt_trib$mcmc,
+           ISB = FALSE,
+           exact = TRUE,
+           params = c("betaP[1, 1]", "betaP[2, 1]", "betaP[3, 1]",
+                      "betaP[1, 2]", "betaP[2, 2]", "betaP[3, 2]",
+                      "betaP[1, 3]", "betaP[2, 3]", "betaP[3, 3]"),
+           pdf = FALSE,
+           priors = priors
+           )
   # 
   (modSummary_tt_trib <- MCMCsummary(object = mod_tt_trib$mcmc, round = 3))
-  
-  #   MCMCplot(object = mod$mcmc, params = "betaPhiRiverOut")
-#
-#   priors <- rnorm(tar_read(ttt_runData)$nIter * tar_read(ttt_runData)$nChains, 0, 1/sqrt(.1))
-#   MCMCtrace(object = mod$mcmc,
-#             #ISB = FALSE,
-#             #exact = TRUE,
-#             params = c("betaPhiRiverOut"),
-#             pdf = FALSE,
-#             priors = priors
-#             )
+
+  nS <- mod_tt_trib$myConstants$nStates
+  nT <- mod_tt_trib$myConstants$T 
+    
+  phi_tt_trib <- modSummary_tt_trib %>% 
+    filter(substr(row.names(modSummary_tt_trib), 1, 7) == "betaPhi") %>%
+    add_column(data.frame(state = 1:nS, dateYM = rep(1:(nT - 1), each = nS))) 
+
+  (
+    phi_tt_trib_means <- phi_tt_trib %>%
+    group_by(state) %>%
+    summarise(meanPhi = mean(mean),
+              sdPhi = sd(mean),
+              mean025 = mean(cur_data()[[3]]),
+              mean50 = mean(cur_data()[[4]]),
+              mean975 = mean(cur_data()[[5]])
+              ) %>%
+    mutate(river = "trib") %>%
+    ungroup()
+    )
+    
+  psi_tt_trib <- modSummary_tt_trib %>% 
+    filter(substr(row.names(modSummary_tt_trib), 1, 3) == "psi") %>%
+    add_column(data.frame(stateFrom = 1:nS, stateTo = rep(1:nS, each = nS), dateYM = rep(1:(nT - 1), each = nS*nS))) 
+
+  (psi_tt_trib_means <- psi_tt_trib %>%
+    group_by(stateFrom, stateTo) %>%
+    summarise(meanPhi = mean(mean),
+              sdPhi = sd(mean),
+              mean025 = mean(cur_data()[[3]]),
+              mean50 = mean(cur_data()[[4]]),
+              mean975 = mean(cur_data()[[5]])) %>%
+    mutate(river = "trib") %>%
+    ungroup()
+    )
+
 }
 #kable(modSummary %>%
 #        add_column(data.frame(year = rep(years[1:15], 2), dateYM = rep(occs[1:15], 2)) )
@@ -319,19 +400,41 @@ if (tar_exist_objects(c("tt_modelOut_trib"))) {
 
 ```
 
+## Combine main and trib estimates
+```{r}
+phi_tt_mainTrib_means <- add_row(phi_tt_main_means, phi_tt_trib_means)
+psi_tt_mainTrib_means <- add_row(psi_tt_main_means, psi_tt_trib_means)
+
+ggplot(phi_tt_mainTrib_means, aes(state, mean50, color = river)) +
+  geom_point(size = 2) +
+  geom_line(size = 1) +
+  geom_errorbar(aes(ymin = mean025, ymax = mean975), 
+                width = 0.2,
+                position = position_dodge(0.05),
+                size = 0.75)
+
+ggplot(psi_tt_mainTrib_means, aes(stateFrom, mean50, color = river)) +
+  geom_point(size = 2) +
+  geom_line(size = 1) +
+  geom_errorbar(aes(ymin = mean025, ymax = mean975), 
+              width = 0.2,
+              position = position_dodge(0.03),
+              size = 0.75) +
+  facet_grid(stateTo ~ 1)
+```
 
 
 ## phiT_pT_psiT  
-Main and trib together
+Main and trib modelled together
 ```{r ttt, eval=TRUE}
 ### Read the model run into global memory
-if (tar_exist_objects(c("ttt_modelOut"))) {
-  mod_ttt <- tar_read(ttt_modelOut)
-  
-  #MCMCplot(object = mod$mcmc)
-  
-  modSummary_ttt <- MCMCsummary(object = mod_ttt$mcmc, round = 3)
-}
+# if (tar_exist_objects(c("ttt_modelOut"))) {
+#   mod_ttt <- tar_read(ttt_modelOut)
+#   
+#   #MCMCplot(object = mod$mcmc)
+#   
+#   modSummary_ttt <- MCMCsummary(object = mod_ttt$mcmc, round = 3)
+# }
 #kable(modSummary %>%
 #        add_column(data.frame(year = rep(years[1:15], 2), dateYM = rep(occs[1:15], 2)) )
 

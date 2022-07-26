@@ -199,7 +199,7 @@ tt_main =
     tt_parametersToSave_main = c("betaPhi", "betaP", "psi"),
     
     tt_conf_main = configureMCMC(
-      tt_Rmodel_main,
+      model = tt_Rmodel_main,
       monitors = tt_parametersToSave_main
     ),
 
