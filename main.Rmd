@@ -33,15 +33,13 @@ This notebook uses [targets](https://books.ropensci.org/targets/) to manage runn
 
 Data preparation and model running happens using targets and exploration of the data and model runs is below in this Markdown document.  
 
-'knit' the document to update all targets and the markdown exploration below.  
-
 'tar_make()' runs all the R scripts and functions specified in '_targets.R'. Only updated code or sections that are downstream from updated data are re-run.  
 'tar_read()' reads 'target' data into the global environment.  
 
 
 To set up a targets project, use use_targets()
 
-This section (tar_make()) reruns the model   
+This section (tar_make()) reruns the model and has some other helpful functions.  
 ```{r tar_make}
 #  tar_watch(seconds = 10, outdated = FALSE, targets_only = TRUE)
 
@@ -57,8 +55,8 @@ This section (tar_make()) reruns the model
 #str(d)
 ```
 
-Load data for analysis  
-Without a postscript, the data are for all fish (main and trib)
+Load raw data for exploration  
+Without a postscript ('_main' or '_trib'), the data are for all fish (main and trib).
 ```{r getTargets}
 dRaw0 <- tar_read(dRaw0) #all data - including untagged
 dRaw <- tar_read(dRaw) #all data for CMR models
@@ -119,6 +117,11 @@ table(tagN$n)
 ```
 
 Grouped by state
+
+States    
+    *River*       *size1*  *size2*   *size3*  
+      Main           1        2        3  
+      Trib           4        5        6 
 ```{r tag information state}
 
 tagN_s <- d %>% 
@@ -135,8 +138,8 @@ table(tagN_s$state, tagN_s$n)
 ```
 
 
-Grouped by main/trib  
-this is what is used for the primary analysis
+#### Grouped by main/trib  
+This is what is used for the primary analysis
 ```{r tag information mainTrib}
 
 tagN_mt <- d %>% 
@@ -187,12 +190,7 @@ kable(head(eh$eh,8))
 table(paste(eh$first, eh$last, sep="_"))
 ```
 
-Transitions  
-    *River*       *size1*  *size2*   *size3*  
-      Main           1        2        3  
-      Trib           4        5        6   
-
-There are very few transitions between main and trib and we can characterize size transitions better with a growth model - run phiT_pT models separately for main and trib
+There are very few transitions between main and trib and we can characterize size transitions better with a growth model - run phiT_pT_psiT models separately for main and trib
 ```{r}
 s <- eh$stateMatrix
 s[s == 0] <- NA
@@ -223,9 +221,10 @@ occs <- colnames(eh$eh)
 
 ## Models
 'phi' = apparent survival (probability of staying in the area = p(survival) + p(not moving out of area)).  
-'p' = probability of capture given that the fish is alive.  
+'p' = probability of capture given that the fish is alive. 
+'psi' = probability of transitioning from one state to another. Here, states are size bins.
 
-### phiT_pT_main
+### phiT_pT_psiT_main
 
 Load data 'main' for analysis  
 ```{r getTargets main}
@@ -314,7 +313,7 @@ ggplot(phi_tt_main, aes(month, med, color = factor(year))) +
                 size = 0.75) +
   ylab("Probability of survival +/- 95% CI") +
   xlab("Month") +
-  ggtitle("Main") +
+  ggtitle("Main - rows = from state, cols = to state") +
   facet_grid(rows = vars(state))
 
 # p
@@ -345,7 +344,7 @@ ggplot(psi_tt_main, aes(month, med, color = factor(year))) +
              cols = vars(stateTo))
 ```
 
-## phiT_pT_trib
+## phiT_pT_psiT_trib
 
 Load data 'trib' for analysis  
 ```{r getTargets trib}
@@ -456,7 +455,7 @@ ggplot(psi_tt_trib, aes(month, med, color = factor(year))) +
               size = 0.75) +
   ylab("Probability of changing state +/- 95% CI") +
   xlab("Month") +
-  ggtitle("Trib") +
+  ggtitle("Trib - rows = from state, cols = to state") +
   facet_grid(rows = vars(stateFrom),
              cols = vars(stateTo))
 ```
@@ -482,10 +481,7 @@ ggplot(phi_tt_mainTrib, aes(month, med, color = factor(river))) +
              cols = vars(year))
 ```
 
-  
-  
 ## Calculate means for broad comparisons  
-  
 ```{r}    
   # Overall means across occasions
 # Main
@@ -586,8 +582,8 @@ Matrix model
 
 
 
-## phiT_pT_psiT  
-Main and trib modelled together
+## phiT_pT_psiT_mainTrib  
+Main and trib modeled together. Not using this as of 7-27-22.
 ```{r ttt, eval=TRUE}
 ### Read the model run into global memory
 # if (tar_exist_objects(c("ttt_modelOut"))) {
