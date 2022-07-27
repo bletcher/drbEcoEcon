@@ -118,7 +118,25 @@ table(tagN$n)
 
 ```
 
-Grouped by main/trib
+Grouped by state
+```{r tag information state}
+
+tagN_s <- d %>% 
+  group_by(tag, state) %>%
+  summarize(n = n()) %>%
+  filter(tag != "") %>%
+  arrange(desc(n))
+
+### Number of times individual fish were observed
+table(tagN_s$n)
+
+### Number of times individual fish were observed by river
+table(tagN_s$state, tagN_s$n)
+```
+
+
+Grouped by main/trib  
+this is what is used for the primary analysis
 ```{r tag information mainTrib}
 
 tagN_mt <- d %>% 
@@ -134,22 +152,6 @@ table(tagN_mt$n)
 (table(tagN_mt$mainTrib, tagN_mt$n))
 
 
-```
-
-Grouped by state
-```{r tag information state}
-
-tagN_s <- d %>% 
-  group_by(tag, state) %>%
-  summarize(n = n()) %>%
-  filter(tag != "") %>%
-  arrange(desc(n))
-
-### Number of times individual fish were observed
-table(tagN_s$n)
-
-### Number of times individual fish were observed by river
-table(tagN_s$state, tagN_s$n)
 ```
 
 
@@ -211,6 +213,10 @@ years <- colnames(eh$eh) %>%
   substr(6,9) %>%
   as.numeric()
 
+months <- colnames(eh$eh) %>%
+  substr(11,12) %>%
+  as.numeric()
+
 occs <- colnames(eh$eh)
 ```
 
@@ -247,8 +253,9 @@ if (tar_exist_objects(c("tt_modelOut_main"))) {
              ISB = FALSE,
              exact = TRUE,
              params = c("betaPhi[1, 1]", "betaPhi[2, 1]", "betaPhi[3, 1]",
-                        "betaPhi[1, 2]", "betaPhi[2, 2]", "betaPhi[3, 2]",
-                        "betaPhi[1, 3]", "betaPhi[2, 3]", "betaPhi[3, 3]"),
+                        "betaPhi[1, 2]", "betaPhi[2, 2]", "betaPhi[3, 2]"
+                        #"betaPhi[1, 3]", "betaPhi[2, 3]", "betaPhi[3, 3]"
+                        ),
              pdf = FALSE,
              priors = priors
              )
@@ -257,57 +264,85 @@ if (tar_exist_objects(c("tt_modelOut_main"))) {
              ISB = FALSE,
              exact = TRUE,
              params = c("betaP[1, 1]", "betaP[2, 1]", "betaP[3, 1]",
-                        "betaP[1, 2]", "betaP[2, 2]", "betaP[3, 2]",
-                        "betaP[1, 3]", "betaP[2, 3]", "betaP[3, 3]"),
+                        "betaP[1, 2]", "betaP[2, 2]", "betaP[3, 2]"
+                        #"betaP[1, 3]", "betaP[2, 3]", "betaP[3, 3]"
+                        ),
              pdf = FALSE,
              priors = priors
              )
   
-  (modSummary_tt_main <- MCMCsummary(object = mod_tt_main$mcmc, round = 3))
-      
+    modSummary_tt_main <- MCMCsummary(object = mod_tt_main$mcmc, round = 3) %>%
+      rename(lo = '2.5%', med = '50%', hi = '97.5%')
+}
+```      
+
+### Main, phi, p and psi
+```{r}
   nS <- mod_tt_main$myConstants$nStates
   nT <- mod_tt_main$myConstants$T 
     
   phi_tt_main <- modSummary_tt_main %>% 
     filter(substr(row.names(modSummary_tt_main), 1, 7) == "betaPhi") %>%
-    add_column(data.frame(state = 1:nS, dateYM = rep(1:(nT - 1), each = nS))) 
+    add_column(data.frame(state = 1:nS, dateYM = rep(1:(nT - 1), each = nS))) %>%
+    mutate(year = years[dateYM],
+           month = months[dateYM], 
+           river = "main")
+  
+  p_tt_main <- modSummary_tt_main %>% 
+    filter(substr(row.names(modSummary_tt_main), 1, 6) == "betaP[") %>%
+    add_column(data.frame(state = 1:nS, dateYM = rep(1:(nT - 1), each = nS))) %>%
+    mutate(year = years[dateYM],
+           month = months[dateYM], 
+           river = "main")
 
-  (
-    phi_tt_main_means <- phi_tt_main %>%
-    group_by(state) %>%
-    summarise(meanPhi = mean(mean),
-              sdPhi = sd(mean),
-              mean025 = mean(cur_data()[[3]]),
-              mean50 = mean(cur_data()[[4]]),
-              mean975 = mean(cur_data()[[5]])) %>%
-    mutate(river = "main") %>%
-    ungroup()
-    )
-    
   psi_tt_main <- modSummary_tt_main %>% 
     filter(substr(row.names(modSummary_tt_main), 1, 3) == "psi") %>%
-    add_column(data.frame(stateFrom = 1:nS, stateTo = rep(1:nS, each = nS), dateYM = rep(1:(nT - 1), each = nS*nS))) 
+    add_column(data.frame(stateFrom = 1:nS, stateTo = rep(1:nS, each = nS), dateYM = rep(1:(nT - 1), each = nS*nS))) %>%
+    mutate(year = years[dateYM],
+           month = months[dateYM], 
+           river = "main")
+```
 
-  (
-    psi_tt_main_means <- psi_tt_main %>%
-    group_by(stateFrom, stateTo) %>%
-    summarise(meanPhi = mean(mean),
-              sdPhi = sd(mean),
-              mean025 = mean(cur_data()[[3]]),
-              mean50 = mean(cur_data()[[4]]),
-              mean975 = mean(cur_data()[[5]])) %>%
-    mutate(river = "main") %>%
-    ungroup()
-    )
+```{r}
+#phi
+ggplot(phi_tt_main, aes(month, med, color = factor(year))) +
+  geom_point(size = 2) +
+  geom_line(size = 1) +
+  geom_errorbar(aes(ymin = lo, ymax = hi), 
+                width = 0.2,
+                position = position_dodge(0.05),
+                size = 0.75) +
+  ylab("Probability of survival +/- 95% CI") +
+  xlab("Month") +
+  ggtitle("Main") +
+  facet_grid(rows = vars(state))
 
-}
-#kable(modSummary %>%
-#        add_column(data.frame(year = rep(years[1:15], 2), dateYM = rep(occs[1:15], 2)) )
+# p
+ggplot(p_tt_main, aes(month, med, color = factor(year))) +
+  geom_point(size = 2) +
+  geom_line(size = 1) +
+  geom_errorbar(aes(ymin = lo, ymax = hi), 
+                width = 0.2,
+                position = position_dodge(0.05),
+                size = 0.75) +
+  ylab("Probability of detection +/- 95% CI") +
+  xlab("Month") +
+  ggtitle("Main") +
+  facet_grid(rows = vars(state))
 
-
-#  d %>%
-#  summarize(unique(data.frame(dateYM, occ)))
-
+#psi
+ggplot(psi_tt_main, aes(month, med, color = factor(year))) +
+  geom_point(size = 2) +
+  geom_line(size = 1) +
+  geom_errorbar(aes(ymin = lo, ymax = hi), 
+              width = 0.2,
+              position = position_dodge(0.03),
+              size = 0.75) +
+  ylab("Probability of changing state +/- 95% CI") +
+  xlab("Month") +
+  ggtitle("Main") +
+  facet_grid(rows = vars(stateFrom),
+             cols = vars(stateTo))
 ```
 
 ## phiT_pT_trib
@@ -352,76 +387,203 @@ if (tar_exist_objects(c("tt_modelOut_trib"))) {
            pdf = FALSE,
            priors = priors
            )
-  # 
-  (modSummary_tt_trib <- MCMCsummary(object = mod_tt_trib$mcmc, round = 3))
 
+    modSummary_tt_trib <- MCMCsummary(object = mod_tt_trib$mcmc, round = 3) %>%
+      rename(lo = '2.5%', med = '50%', hi = '97.5%')
+}
+```
+
+```{r}
   nS <- mod_tt_trib$myConstants$nStates
   nT <- mod_tt_trib$myConstants$T 
-    
+  
   phi_tt_trib <- modSummary_tt_trib %>% 
     filter(substr(row.names(modSummary_tt_trib), 1, 7) == "betaPhi") %>%
-    add_column(data.frame(state = 1:nS, dateYM = rep(1:(nT - 1), each = nS))) 
+    add_column(data.frame(state = 1:nS, dateYM = rep(1:(nT - 1), each = nS))) %>%
+    mutate(year = years[dateYM],
+           month = months[dateYM], 
+           river = "trib")
+  
+  p_tt_trib <- modSummary_tt_trib %>% 
+    filter(substr(row.names(modSummary_tt_trib), 1, 6) == "betaP[") %>%
+    add_column(data.frame(state = 1:nS, dateYM = rep(1:(nT - 1), each = nS))) %>%
+    mutate(year = years[dateYM],
+           month = months[dateYM], 
+           river = "trib")
 
+  psi_tt_trib <- modSummary_tt_trib %>% 
+    filter(substr(row.names(modSummary_tt_trib), 1, 3) == "psi") %>%
+    add_column(data.frame(stateFrom = 1:nS, stateTo = rep(1:nS, each = nS), dateYM = rep(1:(nT - 1), each = nS*nS))) %>%
+    mutate(year = years[dateYM],
+           month = months[dateYM], 
+           river = "trib")
+```  
+  
+```{r}
+#phi
+ggplot(phi_tt_trib, aes(month, med, color = factor(year))) +
+  geom_point(size = 2) +
+  geom_line(size = 1) +
+  geom_errorbar(aes(ymin = lo, ymax = hi), 
+                width = 0.2,
+                position = position_dodge(0.05),
+                size = 0.75) +
+  ylab("Probability of survival +/- 95% CI") +
+  xlab("Month") +
+  ggtitle("Trib") +
+  facet_grid(rows = vars(state))
+
+# p
+ggplot(p_tt_trib, aes(month, med, color = factor(year))) +
+  geom_point(size = 2) +
+  geom_line(size = 1) +
+  geom_errorbar(aes(ymin = lo, ymax = hi), 
+                width = 0.2,
+                position = position_dodge(0.05),
+                size = 0.75) +
+  ylab("Probability of detection +/- 95% CI") +
+  xlab("Month") +
+  ggtitle("Trib") +
+  facet_grid(rows = vars(state))
+
+#psi
+ggplot(psi_tt_trib, aes(month, med, color = factor(year))) +
+  geom_point(size = 2) +
+  geom_line(size = 1) +
+  geom_errorbar(aes(ymin = lo, ymax = hi), 
+              width = 0.2,
+              position = position_dodge(0.03),
+              size = 0.75) +
+  ylab("Probability of changing state +/- 95% CI") +
+  xlab("Month") +
+  ggtitle("Trib") +
+  facet_grid(rows = vars(stateFrom),
+             cols = vars(stateTo))
+```
+  
+## Combine main and trib estimates
+```{r}
+phi_tt_mainTrib <- add_row(phi_tt_main, phi_tt_trib)
+psi_tt_mainTrib <- add_row(psi_tt_main, psi_tt_trib)
+```
+
+```{r}
+ggplot(phi_tt_mainTrib, aes(month, med, color = factor(river))) +
+  geom_point(size = 2) +
+  geom_line(size = 1) +
+  geom_errorbar(aes(ymin = lo, ymax = hi), 
+                width = 0.2,
+                position = position_dodge(0.05),
+                size = 0.75) +
+  ylab("Probability of survival +/- 95% CI") +
+  xlab("Month") +
+  ggtitle("Main and trib") +
+  facet_grid(rows = vars(state),
+             cols = vars(year))
+```
+
+  
+  
+## Calculate means for broad comparisons  
+  
+```{r}    
+  # Overall means across occasions
+# Main
+  (
+    phi_tt_main_means <- phi_tt_main %>%
+    group_by(state) %>%
+    summarise(meanPhi = mean(mean),
+              sdPhi = sd(mean),
+              meanLo = mean(lo),
+              meanMed = mean(med),
+              meanHi = mean(hi)) %>%
+    mutate(river = "main") %>%
+    ungroup()
+  )
+    
+  (
+    psi_tt_main_means <- psi_tt_main %>%
+    group_by(stateFrom, stateTo) %>%
+    summarise(meanPhi = mean(mean),
+              sdPhi = sd(mean),
+              meanLo = mean(lo),
+              meanMed = mean(med),
+              meanHi = mean(hi)) %>%
+    mutate(river = "main") %>%
+    ungroup()
+    )
+
+# Trib
   (
     phi_tt_trib_means <- phi_tt_trib %>%
     group_by(state) %>%
     summarise(meanPhi = mean(mean),
               sdPhi = sd(mean),
-              mean025 = mean(cur_data()[[3]]),
-              mean50 = mean(cur_data()[[4]]),
-              mean975 = mean(cur_data()[[5]])
-              ) %>%
+              meanLo = mean(lo),
+              meanMed = mean(med),
+              meanHi = mean(hi)) %>%
     mutate(river = "trib") %>%
     ungroup()
     )
     
-  psi_tt_trib <- modSummary_tt_trib %>% 
-    filter(substr(row.names(modSummary_tt_trib), 1, 3) == "psi") %>%
-    add_column(data.frame(stateFrom = 1:nS, stateTo = rep(1:nS, each = nS), dateYM = rep(1:(nT - 1), each = nS*nS))) 
-
   (psi_tt_trib_means <- psi_tt_trib %>%
     group_by(stateFrom, stateTo) %>%
     summarise(meanPhi = mean(mean),
               sdPhi = sd(mean),
-              mean025 = mean(cur_data()[[3]]),
-              mean50 = mean(cur_data()[[4]]),
-              mean975 = mean(cur_data()[[5]])) %>%
+              meanLo = mean(lo),
+              meanMed = mean(med),
+              meanHi = mean(hi)) %>%
     mutate(river = "trib") %>%
     ungroup()
     )
 
-}
-#kable(modSummary %>%
-#        add_column(data.frame(year = rep(years[1:15], 2), dateYM = rep(occs[1:15], 2)) )
-
-
-#  d %>%
-#  summarize(unique(data.frame(dateYM, occ)))
 
 ```
 
-## Combine main and trib estimates
+## Combine mean main and trib estimates
 ```{r}
 phi_tt_mainTrib_means <- add_row(phi_tt_main_means, phi_tt_trib_means)
 psi_tt_mainTrib_means <- add_row(psi_tt_main_means, psi_tt_trib_means)
+```
 
-ggplot(phi_tt_mainTrib_means, aes(state, mean50, color = river)) +
+Probability of survival for each size state
+```{r}
+ggplot(phi_tt_mainTrib_means, aes(state, meanMed, color = river)) +
   geom_point(size = 2) +
   geom_line(size = 1) +
-  geom_errorbar(aes(ymin = mean025, ymax = mean975), 
+  geom_errorbar(aes(ymin = meanLo, ymax = meanHi), 
                 width = 0.2,
                 position = position_dodge(0.05),
-                size = 0.75)
+                size = 0.75) +
+  ylab("Probability of survival +/- 95% CI") +
+  xlab("Size state")
+```
 
-ggplot(psi_tt_mainTrib_means, aes(stateFrom, mean50, color = river)) +
+Probability of changing state. 'From' size states are on the x-axis, 'to' size states are in the rows of the facets
+```{r}
+ggplot(psi_tt_mainTrib_means, aes(stateFrom, meanMed, color = river)) +
   geom_point(size = 2) +
   geom_line(size = 1) +
-  geom_errorbar(aes(ymin = mean025, ymax = mean975), 
+  geom_errorbar(aes(ymin = meanLo, ymax = meanHi), 
               width = 0.2,
               position = position_dodge(0.03),
               size = 0.75) +
-  facet_grid(stateTo ~ 1)
+  ylab("Probability of changing state +/- 95% CI") +
+  xlab("Size state") +
+  facet_grid(rows = vars(stateTo))
 ```
+
+Matrix model
+```{r}
+
+# mMain <- matrix(
+#   c()
+# )
+```
+
+
+
+
 
 
 ## phiT_pT_psiT  
