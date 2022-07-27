@@ -1,0 +1,72 @@
+---
+title: "Growth rates of PIT data from the Delaware River"
+author: "Ben Letcher"
+date: '`r Sys.Date()`'
+output: pdf_document
+---
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+
+library(tidyverse)
+library(lubridate)
+library(knitr)
+library(targets)
+library(tarchetypes)
+library(MCMCvis)
+library(htmltools)
+
+library(bs4Dash)
+library(DT)
+library(gt)
+library(pingr)
+library(shinybusy)
+library(shinyWidgets)
+
+options(tinytex.verbose = TRUE)
+```
+
+```{r}
+d <- tar_read(target_d)
+eh <- tar_read(target_eh)
+```
+
+Add growth rate
+```{r}
+
+d <- d %>%
+  mutate(year = as.numeric(substr(dateYM, 1,4)),
+         month = as.numeric(substr(dateYM, 6,7)))
+
+d <- d %>%
+  group_by(tag) %>%
+  arrange(tag, date) %>%
+  mutate(LengthLag = lag(Length),
+         dateLag = lag(date),
+         dateDiff = as.numeric(date - dateLag),
+         growth = (Length - LengthLag) / dateDiff)
+  
+```
+
+```{r}
+meanGrowth <- d %>%
+  filter(dateDiff < 300) %>%
+  group_by(mainTrib, year, month, sizeState) %>%
+  summarise(mean = mean(growth, na.rm = TRUE),
+            n = n())
+
+ggplot(meanGrowth, aes(month, mean, color = factor(mainTrib))) +
+  geom_point(aes(size = n)) +
+  geom_line() +
+  ylim(-0.3, 0.4) +
+  facet_grid(sizeState ~ year)
+
+ggplot(meanGrowth, aes(month, mean, color = factor(year))) +
+  geom_point(aes(size = n)) +
+  geom_line() +
+  ylim(-0.3, 0.4) +
+  facet_grid(sizeState ~ mainTrib)
+  
+```
+
+
+

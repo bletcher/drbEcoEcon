@@ -40,5 +40,6 @@ list(
   target_getEH_trib,
   #tt_main,
   #tt_trib
-  tar_render(report, "main.Rmd")
+  tar_render(report, "main.Rmd"),
+  tar_render(reportGrowth, "mainGrowth.Rmd")
 )
