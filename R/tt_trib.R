@@ -20,16 +20,16 @@ tt_trib =
     
     tt_runData_trib = list(
       # Updateable model-specific variables 
-      nIter = 5000, 
-      nBurnin = 2000, 
+      nIter = 51, 
+      nBurnin = 20, 
       nChains = 2,
       thinRate = 5
     ),
 
     tt_alpha_trib = list(
-      alphaR1 = c(0.8,0.1,0.1), #change to .71 to trigger rerun
-      alphaR2 = c(0.1,0.8,0.1),
-      alphaR3 = c(0.1,0.1,0.8)
+      alphaR1 = c(0.8, 0.1, 0.1), 
+      alphaR2 = c(0.1, 0.8, 0.1),
+      alphaR3 = c(0.1, 0.1, 0.8)
     ),
     
     tt_myConstants_trib = list(

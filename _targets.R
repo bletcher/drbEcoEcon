@@ -38,8 +38,8 @@ list(
   target_getEH,
   target_getEH_main,
   target_getEH_trib,
-  #tt_main,
-  #tt_trib
+  tt_main,
+  tt_trib,
   tar_render(report, "main.Rmd"),
   tar_render(reportGrowth, "mainGrowth.Rmd")
 )
