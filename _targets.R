@@ -34,12 +34,12 @@ lapply(list.files("R", full.names = TRUE, recursive = TRUE), source)
 list(
   target_globalVariables,
   target_getData,
-  target_prepareData,
+  target_prepareData,  
   target_getEH,
   target_getEH_main,
   target_getEH_trib,
-  tt_main,
   tt_trib,
+  tt_main,
   tar_render(report, "main.Rmd"),
   tar_render(reportGrowth, "mainGrowth.Rmd")
 )

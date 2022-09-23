@@ -20,8 +20,8 @@ tt_main =
     
     tt_runData_main = list(
       # Updateable model-specific variables 
-      nIter = 50, 
-      nBurnin = 20, 
+      nIter = 5000, 
+      nBurnin = 2000, 
       nChains = 2,
       thinRate = 5
     ),
@@ -234,7 +234,6 @@ saveModelOut_tt_main <- function(d) {
   save(d, file = paste0('./models/runsOut/tt_main_', substr(Sys.time(),1,13), '.RData'))
 }
 
-
 initialValues_tt_main <- function(s, t, a) {
   list(
     #betaPhi = array(rnorm(s * (t - 1), 0, 1), c(s, (t - 1))),
@@ -256,7 +255,6 @@ getDirchPriorsR_tt_main <- function(s, tt, aa){
   }
   return(a)
 }
-
 
 getInits_tt_main <- function(y) {
   zInits <- y + 1 # non-detection -> alive

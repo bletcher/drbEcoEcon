@@ -49,10 +49,11 @@ d <- d %>%
 
 ```{r}
 meanGrowth <- d %>%
-  filter(dateDiff < 300) %>%
+  filter(dateDiff < 300, growth > 0, growth < 3) %>%
   group_by(mainTrib, year, month, sizeState) %>%
   summarise(mean = mean(growth, na.rm = TRUE),
-            n = n())
+            n = n()) %>%
+  filter(n > 3)
 
 ggplot(meanGrowth, aes(month, mean, color = factor(mainTrib))) +
   geom_point(aes(size = n)) +
@@ -65,8 +66,52 @@ ggplot(meanGrowth, aes(month, mean, color = factor(year))) +
   geom_line() +
   ylim(-0.3, 0.4) +
   facet_grid(sizeState ~ mainTrib)
+
+ggplot(meanGrowth, aes(sizeState, mean, color = factor(mainTrib))) +
+  geom_point(aes(size = n)) +
+  geom_line() +
+  ylim(-0.3, 0.4) +
+  facet_grid(month ~ year)
   
 ```
 
+```{r}
+meanGrowthSize <- d %>%
+  filter(dateDiff < 300, growth > 0, growth < 3) %>%
+  group_by(mainTrib, sizeState) %>%
+  summarise(mean = mean(growth, na.rm = TRUE),
+            sd = sd(growth, na.rm = TRUE),
+            n = n()) %>%
+  filter(n > 5)
+
+
+ggplot(meanGrowthSize, aes(sizeState, mean, color = factor(mainTrib))) +
+  geom_point(aes(size = n)) +
+  ylab("Mean growth (mm/d)") +
+  ylim(0, 0.4) +
+  geom_line()
+```
+
+```{r}
+meanGrowthSizeYear <- d %>%
+  filter(dateDiff < 300, growth > 0, growth < 3) %>%
+  group_by(mainTrib, sizeState, year) %>%
+  summarise(mean = mean(growth, na.rm = TRUE),
+            sd = sd(growth, na.rm = TRUE),
+            n = n()) %>%
+  filter(n > 5)
+
+
+
+ggplot(meanGrowthSizeYear %>% filter(year == 2019, n > 20), aes(sizeState, mean, color = factor(mainTrib))) +
+  geom_point(aes(size = n)) +
+  ylab("Mean growth (mm/d)") +
+  #ylim(0, 0.4) +
+  geom_line() +
+  facet_wrap(~year)
+
+tmp <- d%>% filter(year ==  2020, mainTrib == "main", sizeState == 2)
+table(tmp$growth)
+```
 
 

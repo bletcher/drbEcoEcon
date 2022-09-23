@@ -20,8 +20,8 @@ tt_trib =
     
     tt_runData_trib = list(
       # Updateable model-specific variables 
-      nIter = 51, 
-      nBurnin = 20, 
+      nIter = 5000, 
+      nBurnin = 2000, 
       nChains = 2,
       thinRate = 5
     ),

@@ -1,7 +1,7 @@
 ---
 title: "Delaware River PIT tag data analysis"
 author: "Ben Letcher"
-date: "`r Sys.Date()`"
+date: '`r Sys.Date()`'
 output: pdf_document
 editor_options: 
   chunk_output_type: console
@@ -27,19 +27,21 @@ library(shinyWidgets)
 
 options(tinytex.verbose = TRUE)
 ```
-*Note*: the results shown here are preliminary and have not been officially reviewed by USGS, NYDEC or PA Fish and Boat  
 
-This notebook uses [targets](https://books.ropensci.org/targets/) to manage running code and updating R objects. Targets sets up dependencies among specified objects and only re-runs code as necessary (when an upstream component gets updated). This can save run times for projects with models that take a while to run, like capture-mark-recapture models.  
+*Note*: the results shown here are preliminary and have not been officially reviewed by USGS, NYDEC or PA Fish and Boat
 
-Data preparation and model running happens using targets and exploration of the data and model runs is below in this Markdown document.  
+This notebook uses [targets](https://books.ropensci.org/targets/) to manage running code and updating R objects. Targets sets up dependencies among specified objects and only re-runs code as necessary (when an upstream component gets updated). This can save run times for projects with models that take a while to run, like capture-mark-recapture models.
 
-'tar_make()' runs all the R scripts and functions specified in '_targets.R'. Only updated code or sections that are downstream from updated data are re-run.  
-'tar_read()' reads 'target' data into the global environment.  
+Data preparation and model running happens using targets and exploration of the data and model runs is below in this Markdown document.
 
+'tar_make()' runs all the R scripts and functions specified in '\_targets.R'. Only updated code or sections that are downstream from updated data are re-run.\
+'tar_read()' reads 'target' data into the global environment.
 
 To set up a targets project, use use_targets()
 
-This section (tar_make()) reruns the model and has some other helpful functions.  
+This section (tar_make()) reruns the model and has some other helpful functions.
+
+
 ```{r tar_make}
 #  tar_watch(seconds = 10, outdated = FALSE, targets_only = TRUE)
 
@@ -55,8 +57,9 @@ This section (tar_make()) reruns the model and has some other helpful functions.
 #str(d)
 ```
 
-Load raw data for exploration  
-Without a postscript ('_main' or '_trib'), the data are for all fish (main and trib).
+Load raw data for exploration\
+Without a postscript ('\_main' or '\_trib'), the data are for all fish (main and trib).
+
 ```{r getTargets}
 dRaw0 <- tar_read(dRaw0) #all data - including untagged
 dRaw <- tar_read(dRaw) #all data for CMR models
@@ -65,18 +68,20 @@ eh <- tar_read(target_eh)
 
 ```
 
-
 Visualize the network - does not work with pdf output
+
 ```{r}
 #tar_visnetwork()
 ```
 
 Which rivers (Water) riverN corresponds to
+
 ```{r riverN}
 table(d$Water, d$riverN)
 ```
 
 ### Raw data summary tables
+
 ```{r basic summaries}
 
 kable(data.frame(ftable(d$date)))
@@ -89,15 +94,18 @@ kable(data.frame(ftable(d$species)))
 length(unique(d$tag))
 ```
 
-Group observations by month.  
+Group observations by month.\
 Luckily, sampling periods do not span months, so we can use month as a grouping variable for sampling occasion
+
 ```{r by month}
 kable(data.frame(ftable(d$dateYM)))
 
 ```
 
-### Tag information  
+### Tag information
+
 Grouped by Water (sampling area)
+
 ```{r tag information}
 
 tagN <- d %>% 
@@ -112,16 +120,15 @@ table(tagN$n)
 ### Number of times individual fish were observed by river
 (table(tagN$Water, tagN$n))
 
-
-
 ```
 
 Grouped by state
 
-States    
-    *River*       *size1*  *size2*   *size3*  
-      Main           1        2        3  
-      Trib           4        5        6 
+States\
+*River* *size1* *size2* *size3*\
+Main 1 2 3\
+Trib 4 5 6
+
 ```{r tag information state}
 
 tagN_s <- d %>% 
@@ -137,13 +144,14 @@ table(tagN_s$n)
 table(tagN_s$state, tagN_s$n)
 ```
 
+#### Grouped by main/trib
 
-#### Grouped by main/trib  
 This is what is used for the primary analysis
+
 ```{r tag information mainTrib}
 
 tagN_mt <- d %>% 
-  group_by(tag, mainTrib) %>%
+  group_by(tag, mainTrib, species) %>%
   summarize(n = n()) %>%
   filter(tag != "") %>%
   arrange(desc(n))
@@ -154,11 +162,12 @@ table(tagN_mt$n)
 ### Number of times individual fish were observed by river
 (table(tagN_mt$mainTrib, tagN_mt$n))
 
-
+(table(tagN_mt$species))
+(table(tagN_mt$mainTrib, tagN_mt$species))
 ```
 
-
 ### Basic summary plots of raw tagging data
+
 ```{r basic graphs}
 
 ggplot(d %>% filter(species == "brown trout"), aes(Length)) +
@@ -178,10 +187,10 @@ ggplot(d %>% filter(species == "brown trout"), aes(Length)) +
 
 ```
 
+### Encounter histories
 
-
-### Encounter histories  
 This is the data structure for the capture-recapture models. Each column is a sampling 'occasion' (here = month) and each row is an individual, where a '1' indicates capture and a '0' indicates not captured.
+
 ```{r eh}
 
 str(eh$eh)
@@ -191,6 +200,7 @@ table(paste(eh$first, eh$last, sep="_"))
 ```
 
 There are very few transitions between main and trib and we can characterize size transitions better with a growth model - run phiT_pT_psiT models separately for main and trib
+
 ```{r}
 s <- eh$stateMatrix
 s[s == 0] <- NA
@@ -203,8 +213,8 @@ s2 <- data.frame(s) %>%
 table(s2)
 ```
 
-
 Summary info for years and occasions
+
 ```{r}
 
 years <- colnames(eh$eh) %>%
@@ -218,15 +228,15 @@ months <- colnames(eh$eh) %>%
 occs <- colnames(eh$eh)
 ```
 
-
 ## Models
-'phi' = apparent survival (probability of staying in the area = p(survival) + p(not moving out of area)).  
-'p' = probability of capture given that the fish is alive. 
-'psi' = probability of transitioning from one state to another. Here, states are size bins.
+
+'phi' = apparent survival (probability of staying in the area = p(survival) + p(not moving out of area)).\
+'p' = probability of capture given that the fish is alive. 'psi' = probability of transitioning from one state to another. Here, states are size bins.
 
 ### phiT_pT_psiT_main
 
-Load data 'main' for analysis  
+Load data 'main' for analysis
+
 ```{r getTargets main}
 #d_tt <- tar_read(target_d_trib)
 eh_main <- tar_read(target_eh_main)
@@ -237,7 +247,6 @@ str(eh_main$eh)
 table(paste(eh_main$first, eh_main$last, sep="_"))
 
 ```
-
 
 ```{r tt main, eval=TRUE}
 ### Read the model run into global memory
@@ -273,9 +282,10 @@ if (tar_exist_objects(c("tt_modelOut_main"))) {
     modSummary_tt_main <- MCMCsummary(object = mod_tt_main$mcmc, round = 3) %>%
       rename(lo = '2.5%', med = '50%', hi = '97.5%')
 }
-```      
+```
 
 ### Main, phi, p and psi
+
 ```{r}
   nS <- mod_tt_main$myConstants$nStates
   nT <- mod_tt_main$myConstants$T 
@@ -346,7 +356,8 @@ ggplot(psi_tt_main, aes(month, med, color = factor(year))) +
 
 ## phiT_pT_psiT_trib
 
-Load data 'trib' for analysis  
+Load data 'trib' for analysis
+
 ```{r getTargets trib}
 #d_tt <- tar_read(target_d_trib)
 eh_trib <- tar_read(target_eh_trib)
@@ -359,6 +370,7 @@ table(paste(eh_trib$first, eh_trib$last, sep="_"))
 ```
 
 Plot trib model estimates
+
 ```{r tt trib, eval=TRUE}
 ### Read the model run into global memory
 if (tar_exist_objects(c("tt_modelOut_trib"))) {
@@ -416,8 +428,8 @@ if (tar_exist_objects(c("tt_modelOut_trib"))) {
     mutate(year = years[dateYM],
            month = months[dateYM], 
            river = "trib")
-```  
-  
+```
+
 ```{r}
 #phi
 ggplot(phi_tt_trib, aes(month, med, color = factor(year))) +
@@ -459,8 +471,9 @@ ggplot(psi_tt_trib, aes(month, med, color = factor(year))) +
   facet_grid(rows = vars(stateFrom),
              cols = vars(stateTo))
 ```
-  
+
 ## Combine main and trib estimates
+
 ```{r}
 phi_tt_mainTrib <- add_row(phi_tt_main, phi_tt_trib)
 psi_tt_mainTrib <- add_row(psi_tt_main, psi_tt_trib)
@@ -481,8 +494,9 @@ ggplot(phi_tt_mainTrib, aes(month, med, color = factor(river))) +
              cols = vars(year))
 ```
 
-## Calculate means for broad comparisons  
-```{r}    
+## Calculate means for broad comparisons
+
+```{r}
   # Overall means across occasions
 # Main
   (
@@ -537,12 +551,14 @@ ggplot(phi_tt_mainTrib, aes(month, med, color = factor(river))) +
 ```
 
 ## Combine mean main and trib estimates
+
 ```{r}
 phi_tt_mainTrib_means <- add_row(phi_tt_main_means, phi_tt_trib_means)
 psi_tt_mainTrib_means <- add_row(psi_tt_main_means, psi_tt_trib_means)
 ```
 
 Probability of survival for each size state
+
 ```{r}
 ggplot(phi_tt_mainTrib_means, aes(state, meanMed, color = river)) +
   geom_point(size = 2) +
@@ -556,6 +572,7 @@ ggplot(phi_tt_mainTrib_means, aes(state, meanMed, color = river)) +
 ```
 
 Probability of changing state. 'From' size states are on the x-axis, 'to' size states are in the rows of the facets
+
 ```{r}
 ggplot(psi_tt_mainTrib_means, aes(stateFrom, meanMed, color = river)) +
   geom_point(size = 2) +
@@ -570,6 +587,7 @@ ggplot(psi_tt_mainTrib_means, aes(stateFrom, meanMed, color = river)) +
 ```
 
 Matrix model
+
 ```{r}
 
 # mMain <- matrix(
@@ -577,13 +595,10 @@ Matrix model
 # )
 ```
 
+## phiT_pT_psiT_mainTrib
 
-
-
-
-
-## phiT_pT_psiT_mainTrib  
 Main and trib modeled together. Not using this as of 7-27-22.
+
 ```{r ttt, eval=TRUE}
 ### Read the model run into global memory
 # if (tar_exist_objects(c("ttt_modelOut"))) {
@@ -652,7 +667,6 @@ Main and trib modeled together. Not using this as of 7-27-22.
 #             )
 
 ```
-
 
 ```{r p summary ttt, eval=TRUE}
 #create data frame for summarizing p results

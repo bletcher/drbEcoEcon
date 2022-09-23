@@ -4,3 +4,13 @@ ttt
   
   07-14 21, main_0_001,  sd of dnorm() priors = 0.001, changed sizecuttoffs to 230,380, phi's 0 or 1
   07-15 2,  main_0_1,    sd of dnorm() priors = 0.1, phi's sort of 0 or 1
+
+tt
+  main_5_MT.pdf, sd=5, psi=0.7,0.1,0.1
+  Broad CIs, good mixing
+    tt_trib_2022-07-20 08
+    tt_main_2022-07-20 01
+    
+  main_5_MT_111.pdf, sd=5, psi=1,1,1
+    
+  
