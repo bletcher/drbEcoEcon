@@ -16,6 +16,8 @@ tt_trib =
         
         nStates = length(unique(target_eh_trib$data$sizeState)),
         nRivers = length(unique(target_eh_trib$data$sizeState)) # for now
+        
+        
       ),   
     
     tt_runData_trib = list(
@@ -46,7 +48,9 @@ tt_trib =
       alphaR3 = tt_alpha_trib$alphaR3,
 
       deltaProps = tt_inputData_trib$deltaProps,
-      nStates = tt_inputData_trib$nStates
+      nStates = tt_inputData_trib$nStates,
+      
+      dateMedianDiffMonth = target_eh_trib$dateMedian$dateMedianDiffMonth
     ),
 
     tt_myData_trib = list(
@@ -67,6 +71,7 @@ tt_trib =
           betaPhi[s,t] ~ dunif(0,1)
           betaP[s,t] ~ dunif(0,1)
           
+          betaPhiMonthly[r,t] <- betaPhi[r,t] ^ dateMedianDiffMonth[t]
           #betaPhiOut[r,t] <- ilogit(betaPhi[r,t])
           #betaPOut[r,t] <- ilogit(betaP[r,t])
         }
@@ -184,7 +189,7 @@ tt_trib =
       calculate = FALSE
     ),
 
-    tt_parametersToSave_trib = c("betaPhi", "betaP", "psi"),
+    tt_parametersToSave_trib = c("betaPhi", "betaP", "psi", "betaPhiMonthly"),
     
     tt_conf_trib = configureMCMC(
       tt_Rmodel_trib,

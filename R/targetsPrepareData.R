@@ -33,7 +33,9 @@ target_prepareData <-
       addMainTrib(target_mainRiver) %>%
       addSizeState(target_sizeCutoff1, target_sizeCutoff2) %>%
       combineRiverSizeState() %>%
-      doNothing(),
+      joinMedianDate() #%>%
+    #  doNothing()
+    ,
     
     ###########################################
     # find fish caught more than once on a day
@@ -162,3 +164,21 @@ combineRiverSizeState <- function(d) {
     )
 }
 
+joinMedianDate0 <- function(d, d2) {
+  d |> 
+    left_join(d2 |> select(dateYM, dateMedianDiffMonth, dateMedianDiff))
+}
+
+joinMedianDate <- function(d) {
+
+  medianDate <- d %>%
+    group_by(dateYM) %>%
+    summarize(dateMedian = median(date)) %>%
+    mutate(dayMedian = as.numeric(substr(dateMedian, 9, 10)),
+           date = ym(dateYM),
+           dateMedianLag = lead(dateMedian),
+           dateMedianDiff = dateMedianLag - dateMedian,
+           dateMedianDiffMonth = as.numeric(dateMedianDiff / 30.5))
+  d |> 
+    left_join(medianDate |> select(dateYM, dateMedianDiffMonth, dateMedianDiff))
+}

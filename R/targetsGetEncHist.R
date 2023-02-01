@@ -67,6 +67,12 @@ keepOnlyFirstObsPerOcc <- function(d) {
     anti_join(rowsToRemove)
 }
 
+joinMedianDate <- function(d, d2) {
+  d |> 
+    left_join(d2 |> select(dateYM, dateMedianDiffMonth, dateMedianDiff))
+}
+
+
 
 #### getEH functions
 op_call <- function(op, lhs, rhs) {
@@ -108,7 +114,9 @@ getEH <- function(d, cols, ops, vals ){
     filter(tag %notin% getNeverCaptured(d)$tag,             # Fish with no observed occasions
            tag %notin% getFirstObservedOnLastOcc(d)$tag     # exclude fish caught on the last capture occasion
     ) %>%
-    keepOnlyFirstObsPerOcc()                               # just the first obs on a given day for fish caught gt 1 time per day
+    keepOnlyFirstObsPerOcc()                                # just the first obs on a given day for fish caught gt 1 time per day
+    #joinMedianDate(tar_read(target_sampleDateMedian))
+  
   
   encWide <- getEHDataWide(d, cols, ops, vals, "enc", valuesFill = 0)
   eh <- as.matrix(encWide %>% dplyr::select(-tag), nrow = nrow(encWide), ncol = ncol(encWide) - 1)
@@ -125,6 +133,12 @@ getEH <- function(d, cols, ops, vals ){
   sizeStateWide <- getEHDataWide(d, cols, ops, vals, "sizeState", valuesFill = 0)
   sizeStateMatrix <- as.matrix(sizeStateWide %>% dplyr::select(-tag), nrow = nrow(sizeStateWide), ncol = ncol(sizeStateWide) - 1)
   
+  dateMedianDiffMonthWide <- getEHDataWide(d, cols, ops, vals, "dateMedianDiffMonth", valuesFill = NA)
+  dateMedianDiffMonthMatrix <- as.matrix(dateMedianDiffMonthWide %>% dplyr::select(-tag), nrow = nrow(dateMedianDiffMonthWide), 
+                                         ncol = ncol(dateMedianDiffMonthWide) - 1)
+  dateMedianDiffMonthVector <- dateMedianDiffMonthWide |> select(-tag) |> map(min, na.rm = TRUE) |> unlist()
+  
+  
   tags <- encWide %>% dplyr::select(tag)
   
   data <- d %>%
@@ -140,14 +154,18 @@ getEH <- function(d, cols, ops, vals ){
   # set all 'last' to the last occasion - we don't know age
   last <- rep(ncol(riverMatrix) - 0, nrow(riverMatrix))
   
+  dateMedian <- unique(data |> select(dateYM, dateMedianDiffMonth)) |> arrange(dateYM)
+  
   return(list(eh = eh,
               riverMatrix = riverMatrix,
               riverNMatrix = riverNMatrix,
               stateMatrix = stateMatrix,
               sizeStateMatrix = sizeStateMatrix,
+              dateMedianDiffMonthVector = dateMedianDiffMonthVector,
               tags = tags, 
               first = first, 
-              last = last, 
+              last = last,
+              dateMedian = dateMedian,
               data = data))
 }
 

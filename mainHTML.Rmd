@@ -1,17 +1,8 @@
 ---
 title: "Delaware River PIT tag data analysis"
 author: "Ben Letcher"
-date: '`r Sys.Date()`'
-
-editor: source
-toc: true
-number-sections: true
-format:
-  html: 
-    code-fold: true
-    self-contained: true
-  pdf:
-    toc: true
+date: "`r Sys.Date()`"
+output: pdf_document
 editor_options: 
   chunk_output_type: console
 ---
@@ -49,7 +40,6 @@ Data preparation and model running happens using targets and exploration of the 
 To set up a targets project, use use_targets()
 
 This section (tar_make()) reruns the model and has some other helpful functions.
-
 
 ```{r tar_make}
 #  tar_watch(seconds = 10, outdated = FALSE, targets_only = TRUE)
@@ -111,23 +101,6 @@ kable(data.frame(ftable(d$dateYM)))
 
 ```
 
-Median sample date for each month/year combination. Need to calculate flow and temperature stats  
-This is now calculated in `targetsPrepareData.R`.
-```{r}
-
-# sampleDateMedian <- d %>%
-#   group_by(dateYM) %>%
-#   summarize(dateMedian = median(date)) %>%
-#   mutate(dayMedian = as.numeric(substr(dateMedian, 9, 10)),
-#          date = ym(dateYM),
-#          dateMedianLag = lead(dateMedian),
-#          dateMedianDiff = dateMedianLag - dateMedian,
-#          dateMedianDiffMonth = as.numeric(dateMedianDiff / 30.5))
-# 
-# write.csv(sampleDateMedian, "./dataOut/sampleDateMedian.csv")
-```
-
-
 ### Tag information
 
 Grouped by Water (sampling area)
@@ -145,6 +118,8 @@ table(tagN$n)
 
 ### Number of times individual fish were observed by river
 (table(tagN$Water, tagN$n))
+
+
 
 ```
 
@@ -177,7 +152,7 @@ This is what is used for the primary analysis
 ```{r tag information mainTrib}
 
 tagN_mt <- d %>% 
-  group_by(tag, mainTrib, species) %>%
+  group_by(tag, mainTrib) %>%
   summarize(n = n()) %>%
   filter(tag != "") %>%
   arrange(desc(n))
@@ -188,8 +163,7 @@ table(tagN_mt$n)
 ### Number of times individual fish were observed by river
 (table(tagN_mt$mainTrib, tagN_mt$n))
 
-(table(tagN_mt$species))
-(table(tagN_mt$mainTrib, tagN_mt$species))
+
 ```
 
 ### Basic summary plots of raw tagging data
@@ -280,7 +254,6 @@ if (tar_exist_objects(c("tt_modelOut_main"))) {
   mod_tt_main <- tar_read(tt_modelOut_main)
   
   MCMCplot(object = mod_tt_main$mcmc, params = "betaPhi")
-  MCMCplot(object = mod_tt_main$mcmc, params = "betaPhiMonthly")
   MCMCplot(object = mod_tt_main$mcmc, params = "betaP")
   
    priors <- rnorm(tar_read(tt_runData_main)$nIter * tar_read(tt_runData_main)$nChains, 0, 1/sqrt(.1))
@@ -318,14 +291,7 @@ if (tar_exist_objects(c("tt_modelOut_main"))) {
   nT <- mod_tt_main$myConstants$T 
     
   phi_tt_main <- modSummary_tt_main %>% 
-    filter(substr(row.names(modSummary_tt_main), 1, 8) == "betaPhi[") %>%
-    add_column(data.frame(state = 1:nS, dateYM = rep(1:(nT - 1), each = nS))) %>%
-    mutate(year = years[dateYM],
-           month = months[dateYM], 
-           river = "main")
-  
-  phiMonthly_tt_main <- modSummary_tt_main %>% 
-    filter(substr(row.names(modSummary_tt_main), 1, 8) == "betaPhiM") %>%
+    filter(substr(row.names(modSummary_tt_main), 1, 7) == "betaPhi") %>%
     add_column(data.frame(state = 1:nS, dateYM = rep(1:(nT - 1), each = nS))) %>%
     mutate(year = years[dateYM],
            month = months[dateYM], 
@@ -360,20 +326,6 @@ ggplot(phi_tt_main, aes(month, med, color = factor(year))) +
   ggtitle("Main - rows = from state, cols = to state") +
   facet_grid(rows = vars(state))
 
-#phiMonthly
-ggplot(phiMonthly_tt_main, aes(month, med, color = factor(year))) +
-  geom_point(size = 2) +
-  geom_line(size = 1) +
-  geom_errorbar(aes(ymin = lo, ymax = hi), 
-                width = 0.2,
-                position = position_dodge(0.05),
-                size = 0.75) +
-  ylab("Probability of survival +/- 95% CI") +
-  xlab("Month") +
-  ggtitle("Main - rows = from state, cols = to state") +
-  facet_grid(rows = vars(state))
-
-
 # p
 ggplot(p_tt_main, aes(month, med, color = factor(year))) +
   geom_point(size = 2) +
@@ -402,28 +354,6 @@ ggplot(psi_tt_main, aes(month, med, color = factor(year))) +
              cols = vars(stateTo))
 ```
 
-Compare phi and phiMonthly
-```{r}
-phiBoth_tt_main <- add_column(phi_tt_main, phiMonthly_tt_main)
-
-ggplot(phiBoth_tt_main, aes(med, med.1)) +
-  geom_point(aes( color = factor(month)), size = 2) +
-  geom_smooth(method = "lm", se = FALSE) +
-  geom_abline(intercept = 0, slope = 1) +
-  # geom_line(size = 1) +
-  # geom_errorbar(aes(ymin = lo, ymax = hi), 
-  #               width = 0.2,
-  #               position = position_dodge(0.05),
-  #               size = 0.75) +
-  ylab("Probability of survival +/- 95% CI") +
-  xlab("Probability of monthly survival +/- 95% CI") +
-  #ggtitle("Main - rows = from state, cols = to state") +
-  facet_grid(rows = vars(state))
-
-
-```
-
-
 ## phiT_pT_psiT_trib
 
 Load data 'trib' for analysis
@@ -447,7 +377,6 @@ if (tar_exist_objects(c("tt_modelOut_trib"))) {
   mod_tt_trib <- tar_read(tt_modelOut_trib)
   
   MCMCplot(object = mod_tt_trib$mcmc, params = "betaPhi")
-  #MCMCplot(object = mod_tt_trib$mcmc, params = "betaPhiMonthly")
   MCMCplot(object = mod_tt_trib$mcmc, params = "betaP")
 
    MCMCtrace(object = mod_tt_trib$mcmc,
@@ -776,4 +705,3 @@ Main and trib modeled together. Not using this as of 7-27-22.
 # 
 
 ```
-

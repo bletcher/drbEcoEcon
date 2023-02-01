@@ -15,7 +15,9 @@ tt_main =
         zInits = getInits_tt_main(target_eh_main$eh),
         
         nStates = length(unique(target_eh_main$data$sizeState)),
-        nRivers = length(unique(target_eh_main$data$sizeState)) # for now
+        nRivers = length(unique(target_eh_main$data$sizeState)), # for now
+        
+        dummy = 0 # For resetting targets stream
       ),   
     
     tt_runData_main = list(
@@ -46,7 +48,10 @@ tt_main =
       alphaR3 = tt_alpha_main$alphaR3,
 
       deltaProps = tt_inputData_main$deltaProps,
-      nStates = tt_inputData_main$nStates
+      nStates = tt_inputData_main$nStates,
+      
+     # dateMedianDiffMonth = target_eh_main$dateMedian$dateMedianDiffMonth,
+     dateMedianDiffMonthVector = target_eh_main$dateMedianDiffMonthVector
     ),
 
     tt_myData_main = list(
@@ -67,6 +72,7 @@ tt_main =
           betaPhi[r,t] ~ dunif(0,1)
           betaP[r,t] ~ dunif(0,1)
 
+          betaPhiMonthly[r,t] <- betaPhi[r,t] ^ dateMedianDiffMonthVector[t]
           #betaPhiOut[r,t] <- ilogit(betaPhi[r,t])
           #betaPOut[r,t] <- ilogit(betaP[r,t])
         }
@@ -196,7 +202,7 @@ tt_main =
       calculate = FALSE
     ),
 
-    tt_parametersToSave_main = c("betaPhi", "betaP", "psi"),
+    tt_parametersToSave_main = c("betaPhi", "betaP", "psi", "betaPhiMonthly"),
     
     tt_conf_main = configureMCMC(
       model = tt_Rmodel_main,
